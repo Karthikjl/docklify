@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg-primary: 255 255 255;
+    --color-bg-secondary: 248 250 252;
+    --color-text-primary: 15 23 42;
+    --color-text-secondary: 71 85 105;
+    --color-border: 226 232 240;
+  }
+
+  .dark {
+    --color-bg-primary: 15 23 42;
+    --color-bg-secondary: 30 41 59;
+    --color-text-primary: 248 250 252;
+    --color-text-secondary: 203 213 225;
+    --color-border: 51 65 85;
+  }
+
+
+
+  body {
+    @apply bg-white dark:bg-dark-900 text-dark-900 dark:text-dark-50 font-sans;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  #root {
+    @apply h-screen w-screen;
+  }
+}
+
+@layer components {
+
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-dark-100 dark:bg-dark-800;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-dark-300 dark:bg-dark-600 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-dark-400 dark:bg-dark-500;
+  }
+
+  /* Glassmorphism effect */
+  .glass {
+    @apply bg-white/80 dark:bg-dark-800/80 backdrop-blur-lg;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  /* Button styles */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  }
+
+  .btn-secondary {
+    @apply btn bg-dark-100 dark:bg-dark-700 text-dark-900 dark:text-dark-50 hover:bg-dark-200 dark:hover:bg-dark-600;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent hover:bg-dark-100 dark:hover:bg-dark-800 text-dark-700 dark:text-dark-300;
+  }
+
+  /* Input styles */
+  .input {
+    @apply px-4 py-2 rounded-lg border border-dark-300 dark:border-dark-600 bg-white dark:bg-dark-800 text-dark-900 dark:text-dark-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200;
+  }
+
+  /* Card styles */
+  .card {
+    @apply bg-white dark:bg-dark-800 rounded-xl shadow-lg border border-dark-200 dark:border-dark-700 transition-all duration-200;
+  }
+
+  /* Preview content styles */
+  .markdown-preview {
+    @apply prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-4xl prose-h1:mb-4 prose-h2:text-3xl prose-h2:mb-3 prose-h2:mt-8 prose-h3:text-2xl prose-h3:mb-2 prose-h3:mt-6 prose-p:text-base prose-p:leading-7 prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-a:no-underline hover:prose-a:underline prose-code:text-primary-600 dark:prose-code:text-primary-400 prose-code:bg-dark-100 dark:prose-code:bg-dark-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-dark-900 dark:prose-pre:bg-dark-900 prose-pre:border prose-pre:border-dark-700 prose-blockquote:border-l-4 prose-blockquote:border-primary-500 prose-blockquote:bg-dark-50 dark:prose-blockquote:bg-dark-800/50 prose-blockquote:py-1 prose-blockquote:px-4 prose-img:rounded-lg prose-img:shadow-md prose-table:border prose-table:border-dark-300 dark:prose-table:border-dark-700 prose-th:bg-dark-100 dark:prose-th:bg-dark-800 prose-td:border prose-td:border-dark-300 dark:prose-td:border-dark-700;
+  }
+
+  /* Task list styles */
+  .markdown-preview ul.contains-task-list {
+    @apply list-none pl-0;
+  }
+
+  .markdown-preview ul.contains-task-list li {
+    @apply flex items-start gap-2;
+  }
+
+  .markdown-preview ul.contains-task-list input[type="checkbox"] {
+    @apply mt-1 w-4 h-4 rounded border-dark-300 dark:border-dark-600 text-primary-600 focus:ring-primary-500;
+  }
+
+  /* Mermaid diagram container */
+  .mermaid {
+    @apply flex justify-center my-6;
+  }
+
+  /* KaTeX math */
+  .katex-display {
+    @apply my-6 overflow-x-auto;
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+}
