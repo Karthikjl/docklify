@@ -73,7 +73,7 @@ export async function convertWithGemini(text, apiKey) {
                         temperature: 0.3,
                         topK: 40,
                         topP: 0.95,
-                        maxOutputTokens: 2048,
+                        maxOutputTokens: 8192,
                     },
                 }),
             }
@@ -169,7 +169,7 @@ export async function convertWithOpenAI(text, apiKey) {
                         }
                     ],
                     temperature: 0.3,
-                    max_tokens: 2048,
+                    max_tokens: 4096,
                 }),
             }
         );

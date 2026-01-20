@@ -111,7 +111,7 @@ export default function Toolbar({
     }, []);
 
     return (
-        <div className="glass border-b border-dark-200 dark:border-dark-700 px-6 py-3 flex items-center justify-between">
+        <div className="glass-strong border-b border-white/20 dark:border-dark-700/50 px-3 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 md:gap-4">
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
                     <img src="/logo.svg" alt="AI Markdown Viewer" className="w-8 h-8" />
@@ -170,27 +170,6 @@ export default function Toolbar({
                     >
                         🗑️ Clear
                     </button>
-
-                    {/* AI Convert Button - Only show when AI mode is ON */}
-                    {aiMode && (
-                        <button
-                            onClick={onConvertToMarkdown}
-                            disabled={aiLoading}
-                            className="btn-primary text-sm flex items-center gap-2"
-                            title="Convert plain text to Markdown using AI"
-                        >
-                            {aiLoading ? (
-                                <>
-                                    <span className="inline-block animate-spin">⚙️</span>
-                                    Converting...
-                                </>
-                            ) : (
-                                <>
-                                    🪄 Convert to Markdown
-                                </>
-                            )}
-                        </button>
-                    )}
                 </div>
             </div>
 
@@ -216,29 +195,58 @@ export default function Toolbar({
 
                 <div className="h-6 w-px bg-dark-300 dark:bg-dark-600" />
 
-                {/* AI Mode Toggle */}
-                <button
-                    onClick={onAIModeToggle}
-                    className={`btn-ghost ${aiMode ? 'text-primary-600 dark:text-primary-400' : 'text-dark-500 dark:text-dark-500'}`}
-                    title={aiMode ? 'Disable AI Mode' : 'Enable AI Mode'}
-                >
-                    🤖
-                </button>
-
-                {/* AI Settings - Only show when AI mode is ON */}
-                {aiMode && (
+                {/* AI Mode Controls */}
+                <div className="flex items-center gap-2">
                     <button
-                        onClick={onAISettings}
-                        className="btn-ghost"
-                        title="AI Settings"
+                        onClick={onAIModeToggle}
+                        className={`touch-target p-2 rounded-lg transition-all duration-200 ${aiMode
+                            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                            : 'hover:bg-dark-100 dark:hover:bg-dark-700 text-dark-500 dark:text-dark-500'
+                            }`}
+                        title={aiMode ? 'Disable AI Mode' : 'Enable AI Mode'}
                     >
-                        ⚙️
+                        🤖
                     </button>
-                )}
+
+                    {/* AI Settings - Always visible when AI mode is ON */}
+                    {aiMode && (
+                        <>
+                            <button
+                                onClick={onAISettings}
+                                className="touch-target p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-all duration-200 text-dark-600 dark:text-dark-400"
+                                title="AI Settings"
+                            >
+                                ⚙️
+                            </button>
+
+                            {/* Convert to Markdown Button */}
+                            <button
+                                onClick={onConvertToMarkdown}
+                                disabled={aiLoading}
+                                className="glass-button px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Convert plain text to Markdown using AI"
+                            >
+                                {aiLoading ? (
+                                    <>
+                                        <span className="inline-block animate-spin">⚙️</span>
+                                        <span className="ml-2">Converting...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        🪄 Convert
+                                    </>
+                                )}
+                            </button>
+                        </>
+                    )}
+                </div>
 
                 <button
                     onClick={onScrollSyncToggle}
-                    className={`btn-ghost ${scrollSync ? 'text-primary-600 dark:text-primary-400' : 'text-dark-500 dark:text-dark-500'}`}
+                    className={`touch-target p-2 rounded-lg transition-all duration-200 ${scrollSync
+                        ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                        : 'hover:bg-dark-100 dark:hover:bg-dark-700 text-dark-500 dark:text-dark-500'
+                        }`}
                     title={scrollSync ? 'Disable scroll sync' : 'Enable scroll sync'}
                 >
                     {scrollSync ? '🔗' : '⛓️‍💥'}
@@ -246,7 +254,7 @@ export default function Toolbar({
 
                 <button
                     onClick={onThemeToggle}
-                    className="btn-ghost"
+                    className="touch-target p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-all duration-200 text-dark-600 dark:text-dark-400"
                     title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                 >
                     {theme === 'dark' ? '☀️' : '🌙'}

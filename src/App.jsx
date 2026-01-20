@@ -4,6 +4,7 @@ import Preview from './components/Preview';
 import Toolbar from './components/Toolbar';
 import StatusBar from './components/StatusBar';
 import AISettings from './components/AISettings';
+import ResizablePanels from './components/ResizablePanels';
 import { loadMarkdown, saveMarkdown, loadTheme, saveTheme, loadFontSize, saveFontSize } from './utils/storageUtils';
 import { loadAIMode, saveAIMode, loadProvider, loadApiKey, hasApiKey } from './utils/aiStorage';
 import { convertToMarkdown } from './utils/aiService';
@@ -141,7 +142,7 @@ function App() {
   }, [markdown, aiProvider, aiApiKey]);
 
   return (
-    <div className="flex flex-col h-screen bg-dark-50 dark:bg-dark-900">
+    <div className={`flex flex-col h-screen ${theme === 'light' ? 'light-theme' : ''}`}>
       <Toolbar
         markdown={markdown}
         onMarkdownChange={setMarkdown}
@@ -159,13 +160,12 @@ function App() {
         aiLoading={aiLoading}
       />
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Editor Panel */}
-        <div className="w-1/2 border-r border-dark-200 dark:border-dark-700 flex flex-col">
-          <div className="glass px-4 py-2 text-sm font-medium text-dark-700 dark:text-dark-300 border-b border-dark-200 dark:border-dark-700">
-            📝 Editor
-          </div>
-          <div className="flex-1 overflow-hidden">
+      <ResizablePanels
+        leftPanel={
+          <div className="glass-panel flex flex-col h-full">
+            <div className="px-5 py-4 border-b border-white/10">
+              <h2 className="text-sm font-semibold text-white/90">📝 Editor</h2>
+            </div>
             <Editor
               value={markdown}
               onChange={setMarkdown}
@@ -174,14 +174,12 @@ function App() {
               scrollSync={scrollSync}
             />
           </div>
-        </div>
-
-        {/* Preview Panel */}
-        <div className="w-1/2 flex flex-col">
-          <div className="glass px-4 py-2 text-sm font-medium text-dark-700 dark:text-dark-300 border-b border-dark-200 dark:border-dark-700">
-            👁️ Preview
-          </div>
-          <div className="flex-1 overflow-hidden">
+        }
+        rightPanel={
+          <div className="glass-panel flex flex-col h-full">
+            <div className="px-5 py-4 border-b border-white/10">
+              <h2 className="text-sm font-semibold text-white/90">👁️ Preview</h2>
+            </div>
             <Preview
               markdown={markdown}
               theme={theme}
@@ -189,8 +187,8 @@ function App() {
               scrollSync={scrollSync}
             />
           </div>
-        </div>
-      </div>
+        }
+      />
 
       <StatusBar markdown={markdown} />
 
