@@ -2,8 +2,10 @@ import { useEffect, useRef } from 'react';
 import { parseMarkdown } from '../utils/markdownParser';
 import mermaid from 'mermaid';
 
-export default function Preview({ markdown, theme, fontSize }) {
+export default function Preview({ markdown, theme, fontSize, scrollSync }) {
     const previewRef = useRef(null);
+    const containerRef = useRef(null);
+    const isScrolling = useRef(false);
 
     // Initialize Mermaid
     useEffect(() => {
@@ -77,8 +79,49 @@ export default function Preview({ markdown, theme, fontSize }) {
         });
     }, [markdown]);
 
+    // Handle scroll sync from editor
+    useEffect(() => {
+        if (!scrollSync || !containerRef.current) return;
+
+        const handleEditorScroll = (event) => {
+            if (isScrolling.current) {
+                isScrolling.current = false;
+                return;
+            }
+
+            const { scrollPercentage } = event.detail;
+            if (containerRef.current) {
+                const maxScroll = containerRef.current.scrollHeight - containerRef.current.clientHeight;
+                isScrolling.current = true;
+                containerRef.current.scrollTop = maxScroll * scrollPercentage;
+            }
+        };
+
+        window.addEventListener('editor-scroll', handleEditorScroll);
+        return () => window.removeEventListener('editor-scroll', handleEditorScroll);
+    }, [scrollSync]);
+
+    // Handle scroll in preview
+    const handleScroll = () => {
+        if (!scrollSync || !containerRef.current || isScrolling.current) {
+            isScrolling.current = false;
+            return;
+        }
+
+        const scrollPercentage = containerRef.current.scrollTop /
+            (containerRef.current.scrollHeight - containerRef.current.clientHeight);
+
+        window.dispatchEvent(new CustomEvent('preview-scroll', {
+            detail: { scrollPercentage }
+        }));
+    };
+
     return (
-        <div className="h-full w-full overflow-y-auto custom-scrollbar bg-white dark:bg-dark-900">
+        <div
+            ref={containerRef}
+            className="h-full w-full overflow-y-auto custom-scrollbar bg-white dark:bg-dark-900"
+            onScroll={handleScroll}
+        >
             <div
                 ref={previewRef}
                 className="markdown-preview p-8 animate-in"

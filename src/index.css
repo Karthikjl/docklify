@@ -88,7 +88,129 @@
 
   /* Preview content styles */
   .markdown-preview {
-    @apply prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-4xl prose-h1:mb-4 prose-h2:text-3xl prose-h2:mb-3 prose-h2:mt-8 prose-h3:text-2xl prose-h3:mb-2 prose-h3:mt-6 prose-p:text-base prose-p:leading-7 prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-a:no-underline hover:prose-a:underline prose-code:text-primary-600 dark:prose-code:text-primary-400 prose-code:bg-dark-100 dark:prose-code:bg-dark-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-dark-900 dark:prose-pre:bg-dark-900 prose-pre:border prose-pre:border-dark-700 prose-blockquote:border-l-4 prose-blockquote:border-primary-500 prose-blockquote:bg-dark-50 dark:prose-blockquote:bg-dark-800/50 prose-blockquote:py-1 prose-blockquote:px-4 prose-img:rounded-lg prose-img:shadow-md prose-table:border prose-table:border-dark-300 dark:prose-table:border-dark-700 prose-th:bg-dark-100 dark:prose-th:bg-dark-800 prose-td:border prose-td:border-dark-300 dark:prose-td:border-dark-700;
+    @apply prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-4xl prose-h1:mb-4 prose-h2:text-3xl prose-h2:mb-3 prose-h2:mt-8 prose-h3:text-2xl prose-h3:mb-2 prose-h3:mt-6 prose-p:text-base prose-p:leading-7 prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-a:no-underline hover:prose-a:underline prose-blockquote:border-l-4 prose-blockquote:border-primary-500 prose-blockquote:bg-dark-50 dark:prose-blockquote:bg-dark-800/50 prose-blockquote:py-1 prose-blockquote:px-4 prose-img:rounded-lg prose-img:shadow-md prose-table:border prose-table:border-dark-300 dark:prose-table:border-dark-700 prose-th:bg-dark-100 dark:prose-th:bg-dark-800 prose-td:border prose-td:border-dark-300 dark:prose-td:border-dark-700;
+  }
+
+  /* Inline code */
+  .markdown-preview :not(pre)>code {
+    @apply bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-1.5 py-0.5 rounded font-mono text-sm border border-primary-200 dark:border-primary-800;
+  }
+
+  /* Code blocks */
+  .markdown-preview pre {
+    @apply relative my-6 rounded-xl overflow-hidden shadow-lg border border-dark-700 dark:border-dark-600;
+    background: linear-gradient(to bottom, #1e293b 0%, #0f172a 100%) !important;
+  }
+
+  .markdown-preview pre code {
+    @apply block p-6 overflow-x-auto text-sm leading-relaxed;
+    background: transparent !important;
+    color: #e2e8f0 !important;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Code block with language label */
+  .markdown-preview pre[class*="language-"]::before {
+    content: attr(class);
+    @apply absolute top-0 right-0 px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-bl-lg;
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: white;
+    text-transform: lowercase;
+    opacity: 0.9;
+  }
+
+  .markdown-preview pre.language-javascript::before {
+    content: 'JavaScript';
+    background: linear-gradient(135deg, #f7df1e 0%, #e5c700 100%);
+    color: #000;
+  }
+
+  .markdown-preview pre.language-typescript::before {
+    content: 'TypeScript';
+    background: linear-gradient(135deg, #3178c6 0%, #235a97 100%);
+  }
+
+  .markdown-preview pre.language-python::before {
+    content: 'Python';
+    background: linear-gradient(135deg, #3776ab 0%, #2d5d8a 100%);
+  }
+
+  .markdown-preview pre.language-java::before {
+    content: 'Java';
+    background: linear-gradient(135deg, #f89820 0%, #d47f1a 100%);
+  }
+
+  .markdown-preview pre.language-css::before {
+    content: 'CSS';
+    background: linear-gradient(135deg, #264de4 0%, #1e3db3 100%);
+  }
+
+  .markdown-preview pre.language-html::before {
+    content: 'HTML';
+    background: linear-gradient(135deg, #e34c26 0%, #c43d1f 100%);
+  }
+
+  .markdown-preview pre.language-json::before {
+    content: 'JSON';
+    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+  }
+
+  .markdown-preview pre.language-bash::before,
+  .markdown-preview pre.language-sh::before {
+    content: 'Bash';
+    background: linear-gradient(135deg, #4eaa25 0%, #3d8a1e 100%);
+  }
+
+  .markdown-preview pre.language-sql::before {
+    content: 'SQL';
+    background: linear-gradient(135deg, #e38c00 0%, #b56f00 100%);
+  }
+
+  .markdown-preview pre.language-go::before {
+    content: 'Go';
+    background: linear-gradient(135deg, #00add8 0%, #0099b8 100%);
+  }
+
+  .markdown-preview pre.language-rust::before {
+    content: 'Rust';
+    background: linear-gradient(135deg, #ce422b 0%, #a33522 100%);
+  }
+
+  .markdown-preview pre.language-php::before {
+    content: 'PHP';
+    background: linear-gradient(135deg, #777bb4 0%, #5f6390 100%);
+  }
+
+  .markdown-preview pre.language-ruby::before {
+    content: 'Ruby';
+    background: linear-gradient(135deg, #cc342d 0%, #a32924 100%);
+  }
+
+  /* Syntax highlighting colors */
+  .markdown-preview pre code .keyword {
+    color: #c792ea;
+  }
+
+  .markdown-preview pre code .string {
+    color: #c3e88d;
+  }
+
+  .markdown-preview pre code .function {
+    color: #82aaff;
+  }
+
+  .markdown-preview pre code .comment {
+    color: #546e7a;
+    font-style: italic;
+  }
+
+  .markdown-preview pre code .number {
+    color: #f78c6c;
+  }
+
+  .markdown-preview pre code .operator {
+    color: #89ddff;
   }
 
   /* Task list styles */

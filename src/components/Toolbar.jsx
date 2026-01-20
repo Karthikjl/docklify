@@ -9,7 +9,14 @@ export default function Toolbar({
     onThemeToggle,
     fontSize,
     onFontSizeChange,
-    onClear
+    onClear,
+    scrollSync,
+    onScrollSyncToggle,
+    aiMode,
+    onAIModeToggle,
+    onAISettings,
+    onConvertToMarkdown,
+    aiLoading
 }) {
     const fileInputRef = useRef(null);
 
@@ -106,9 +113,12 @@ export default function Toolbar({
     return (
         <div className="glass border-b border-dark-200 dark:border-dark-700 px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent">
-                    Markdown Viewer
-                </h1>
+                <div className="flex items-center gap-3">
+                    <img src="/logo.svg" alt="AI Markdown Viewer" className="w-8 h-8" />
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent">
+                        AI Markdown Viewer Online
+                    </h1>
+                </div>
 
                 <div className="h-6 w-px bg-dark-300 dark:bg-dark-600" />
 
@@ -160,6 +170,27 @@ export default function Toolbar({
                     >
                         🗑️ Clear
                     </button>
+
+                    {/* AI Convert Button - Only show when AI mode is ON */}
+                    {aiMode && (
+                        <button
+                            onClick={onConvertToMarkdown}
+                            disabled={aiLoading}
+                            className="btn-primary text-sm flex items-center gap-2"
+                            title="Convert plain text to Markdown using AI"
+                        >
+                            {aiLoading ? (
+                                <>
+                                    <span className="inline-block animate-spin">⚙️</span>
+                                    Converting...
+                                </>
+                            ) : (
+                                <>
+                                    🪄 Convert to Markdown
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -184,6 +215,34 @@ export default function Toolbar({
                 </div>
 
                 <div className="h-6 w-px bg-dark-300 dark:bg-dark-600" />
+
+                {/* AI Mode Toggle */}
+                <button
+                    onClick={onAIModeToggle}
+                    className={`btn-ghost ${aiMode ? 'text-primary-600 dark:text-primary-400' : 'text-dark-500 dark:text-dark-500'}`}
+                    title={aiMode ? 'Disable AI Mode' : 'Enable AI Mode'}
+                >
+                    🤖
+                </button>
+
+                {/* AI Settings - Only show when AI mode is ON */}
+                {aiMode && (
+                    <button
+                        onClick={onAISettings}
+                        className="btn-ghost"
+                        title="AI Settings"
+                    >
+                        ⚙️
+                    </button>
+                )}
+
+                <button
+                    onClick={onScrollSyncToggle}
+                    className={`btn-ghost ${scrollSync ? 'text-primary-600 dark:text-primary-400' : 'text-dark-500 dark:text-dark-500'}`}
+                    title={scrollSync ? 'Disable scroll sync' : 'Enable scroll sync'}
+                >
+                    {scrollSync ? '🔗' : '⛓️‍💥'}
+                </button>
 
                 <button
                     onClick={onThemeToggle}
