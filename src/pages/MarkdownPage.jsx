@@ -1,12 +1,25 @@
-import { useMemo } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import Editor from '../components/Editor';
 import Preview from '../components/Preview';
 import ResizablePanels from '../components/ResizablePanels';
 import { renderMarkdown } from '../renderers/markdownRenderer';
 
 export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, scrollSync, editorTheme }) {
-    const previewContent = useMemo(() => renderMarkdown(markdown), [markdown]);
+    const [previewContent, setPreviewContent] = useState('');
+    const [, startTransition] = useTransition();
     const isEmpty = !markdown?.trim();
+
+    // Render markdown in a deferred transition so keystrokes stay snappy
+    useEffect(() => {
+        if (isEmpty) {
+            setPreviewContent('');
+            return;
+        }
+        startTransition(() => {
+            setPreviewContent(renderMarkdown(markdown));
+        });
+    }, [markdown]);
+
 
     return (
         <div className="h-full page-enter">

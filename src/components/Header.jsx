@@ -72,6 +72,9 @@ export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, t
                     <img
                         src="/logo.svg"
                         alt="Doclify"
+                        fetchPriority="high"
+                        width="32"
+                        height="32"
                         className="w-8 h-8 logo-spin cursor-pointer"
                         style={{ transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}
                     />
@@ -97,24 +100,23 @@ export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, t
                         animation: 'fadeSlideUp 0.4s 0.1s cubic-bezier(0.16,1,0.3,1) both',
                     }}
                 >
-                    {/* Pill — sized and positioned by measuring the active tab element */}
-                    {pillStyle.width > 0 && (
-                        <span
-                            aria-hidden="true"
-                            style={{
-                                position: 'absolute',
-                                top: '4px',
-                                bottom: '4px',
-                                left: `${pillStyle.left}px`,
-                                width: `${pillStyle.width}px`,
-                                borderRadius: '7px',
-                                background: pillBg,
-                                boxShadow: pillShadow,
-                                transition: 'left 0.3s cubic-bezier(0.34, 1.2, 0.64, 1), width 0.3s cubic-bezier(0.34, 1.2, 0.64, 1)',
-                                pointerEvents: 'none',
-                            }}
-                        />
-                    )}
+                    {/* Pill — sized by measuring the active tab, then faded in */}
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            position: 'absolute',
+                            top: '4px',
+                            bottom: '4px',
+                            left: `${pillStyle.left}px`,
+                            width: `${pillStyle.width}px`,
+                            borderRadius: '7px',
+                            background: pillBg,
+                            boxShadow: pillShadow,
+                            transition: 'left 0.3s cubic-bezier(0.34, 1.2, 0.64, 1), width 0.3s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.15s ease',
+                            opacity: pillStyle.width > 0 ? 1 : 0,
+                            pointerEvents: 'none',
+                        }}
+                    />
 
                     {TABS.map(({ path, label, exact }, i) => (
                         <NavLink

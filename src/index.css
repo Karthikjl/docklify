@@ -19,9 +19,19 @@
     --color-border: 51 65 85;
   }
 
-  /* Smooth animations for everything */
-  * {
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.2s ease, opacity 0.2s ease;
+  /* Smooth theme transitions — layout-safe properties only */
+  *,
+  *::before,
+  *::after {
+    transition-property: color, background-color, border-color, opacity;
+    transition-duration: 0.25s;
+    transition-timing-function: ease;
+  }
+
+  /* Elements with explicit transforms should not inherit the global transition */
+  [style*="transform"],
+  [style*="animation"] {
+    transition-property: color, background-color, border-color, opacity;
   }
 
   /* Premium Cinematic Background */
