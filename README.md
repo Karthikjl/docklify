@@ -46,6 +46,8 @@
 ### 🎨 UI / UX
 - **Glassmorphism Design** — Premium 4-tier glass panel system
 - **Dark & Light Themes** — Toggle with full theme persistence
+- **Editor Theme Picker** — 7 built-in Monaco editor themes (VS Dark, VS Light, Monokai, Dracula, One Dark, Night Owl, Solarized Dark, GitHub Light) with live preview and localStorage persistence
+- **Smooth Sliding Tab** — Header tabs animate with a physics-spring pill instead of a flicker
 - **Animated Background Orbs** — Subtle ambient glow effects
 - **Smooth Animations** — Page transitions, fade-ins, bounce-in states
 - **Resizable Panels** — Drag the divider to resize the editor/preview split
@@ -145,6 +147,7 @@ MdViewer/
 │   │   ├── markdownParser.js   # markdown-it config, plugins, DOMPurify
 │   │   ├── exportUtils.js      # HTML & PDF export logic
 │   │   ├── storageUtils.js     # localStorage read/write
+│   │   ├── editorThemes.js     # Monaco editor theme definitions (Monokai, Dracula, etc.)
 │   │   ├── aiStorage.js        # AI key/provider persistence
 │   │   ├── aiService.js        # AI API calls (Gemini etc.)
 │   │   └── defaultContent.js   # Default content for each mode
