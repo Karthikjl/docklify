@@ -67,12 +67,13 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
  * @returns {string} - Sanitized HTML
  */
 export function parseMarkdown(markdown) {
-    if (!markdown) return '';
+    if (!markdown || !markdown.trim()) return '';
 
     try {
         const html = md.render(markdown);
 
         // Sanitize HTML to prevent XSS attacks
+        // Note: mermaid code blocks are just <pre><code> at this stage — SVG is rendered later client-side
         const clean = DOMPurify.sanitize(html, {
             ALLOWED_TAGS: [
                 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -84,7 +85,6 @@ export function parseMarkdown(markdown) {
                 'table', 'thead', 'tbody', 'tr', 'th', 'td',
                 'div', 'span',
                 'input', // For task lists
-                'svg', 'path', 'g', 'rect', 'circle', 'line', 'polyline', 'polygon', 'text', // For mermaid
             ],
             ALLOWED_ATTR: [
                 'href', 'target', 'rel',
@@ -92,10 +92,6 @@ export function parseMarkdown(markdown) {
                 'class', 'id',
                 'type', 'checked', 'disabled',
                 'align', 'colspan', 'rowspan',
-                // SVG attributes for mermaid
-                'viewBox', 'width', 'height', 'x', 'y', 'x1', 'y1', 'x2', 'y2',
-                'fill', 'stroke', 'stroke-width', 'd', 'transform', 'points',
-                'cx', 'cy', 'r', 'rx', 'ry',
             ],
             ALLOW_DATA_ATTR: true,
         });

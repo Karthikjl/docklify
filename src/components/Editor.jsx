@@ -3,7 +3,13 @@ import MonacoEditor from '@monaco-editor/react';
 
 export default function Editor({ value, onChange, theme, fontSize, scrollSync, language = 'markdown' }) {
     const editorRef = useRef(null);
-    const scrollCount = useRef(0);
+    const scrollSyncRef = useRef(scrollSync);
+    const isSyncingRef = useRef(false); // prevent feedback loops
+
+    // Keep scrollSyncRef current whenever prop changes
+    useEffect(() => {
+        scrollSyncRef.current = scrollSync;
+    }, [scrollSync]);
 
     function handleEditorDidMount(editor, monaco) {
         editorRef.current = editor;
@@ -25,24 +31,21 @@ export default function Editor({ value, onChange, theme, fontSize, scrollSync, l
 
         // Add keyboard shortcuts
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-            // Save is automatic, just show a message
             console.log('Auto-save enabled');
         });
 
-        // Handle scroll sync
+        // Dispatch scroll events to preview when user scrolls editor
         editor.onDidScrollChange((e) => {
-            if (!scrollSync) return;
-
-            // If this scroll was triggered programmatically, ignore it and decrement counter
-            if (scrollCount.current > 0) {
-                scrollCount.current -= 1;
-                return;
-            }
+            if (!scrollSyncRef.current) return;
+            if (isSyncingRef.current) return; // ignore programmatic scrolls
 
             const scrollTop = e.scrollTop;
             const scrollHeight = editor.getScrollHeight();
             const clientHeight = editor.getLayoutInfo().height;
-            const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
+            const maxScroll = scrollHeight - clientHeight;
+            if (maxScroll <= 0) return;
+
+            const scrollPercentage = scrollTop / maxScroll;
 
             window.dispatchEvent(new CustomEvent('editor-scroll', {
                 detail: { scrollPercentage }
@@ -57,34 +60,33 @@ export default function Editor({ value, onChange, theme, fontSize, scrollSync, l
         }
     }, [fontSize]);
 
-    // Handle scroll sync from preview
+    // Listen for preview-scroll events and mirror to editor
+    // NOTE: We always attach the listener; the ref guards enable/disable sync
     useEffect(() => {
-        if (!scrollSync || !editorRef.current) return;
-
         const handlePreviewScroll = (event) => {
-            // Just process the event, don't check the flag here
-            // The flag is checked in the onDidScrollChange handler
+            if (!scrollSyncRef.current) return;
+            if (!editorRef.current) return;
 
             const { scrollPercentage } = event.detail;
-            if (editorRef.current) {
-                const scrollHeight = editorRef.current.getScrollHeight();
-                const clientHeight = editorRef.current.getLayoutInfo().height;
-                const maxScroll = scrollHeight - clientHeight;
+            const scrollHeight = editorRef.current.getScrollHeight();
+            const clientHeight = editorRef.current.getLayoutInfo().height;
+            const maxScroll = scrollHeight - clientHeight;
+            if (maxScroll <= 0) return;
 
-                const targetScrollTop = maxScroll * scrollPercentage;
-                const currentScrollTop = editorRef.current.getScrollTop();
+            const targetScrollTop = maxScroll * scrollPercentage;
+            const currentScrollTop = editorRef.current.getScrollTop();
 
-                // Only trigger scroll if difference is significant (to avoid micro-loops)
-                if (Math.abs(targetScrollTop - currentScrollTop) > 5) {
-                    scrollCount.current += 1;
-                    editorRef.current.setScrollTop(targetScrollTop);
-                }
+            if (Math.abs(targetScrollTop - currentScrollTop) > 2) {
+                isSyncingRef.current = true;
+                editorRef.current.setScrollTop(targetScrollTop);
+                // Reset flag after a short delay (Monaco scroll is async)
+                setTimeout(() => { isSyncingRef.current = false; }, 50);
             }
         };
 
         window.addEventListener('preview-scroll', handlePreviewScroll);
         return () => window.removeEventListener('preview-scroll', handlePreviewScroll);
-    }, [scrollSync]);
+    }, []); // mount/unmount only — refs handle the live state
 
     return (
         <div className="h-full w-full">
@@ -92,7 +94,7 @@ export default function Editor({ value, onChange, theme, fontSize, scrollSync, l
                 height="100%"
                 language={language}
                 value={value}
-                onChange={onChange}
+                onChange={(val) => onChange(!val?.trim() ? '' : val)}
                 theme={theme === 'dark' ? 'vs-dark' : 'light'}
                 onMount={handleEditorDidMount}
                 options={{

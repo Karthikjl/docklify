@@ -2,23 +2,13 @@ import { useRef, useEffect } from 'react';
 import { readFileAsText } from '../utils/exportUtils';
 
 export default function Toolbar({
-    // Actions
-    onUpload,
-    onExportHTML,
-    onExportPDF,
-    onCopy,
-    onClear,
-
-    // Settings
+    onUpload, onExportHTML, onExportPDF, onCopy, onClear,
     theme, onThemeToggle,
     fontSize, onFontSizeChange,
     scrollSync, onScrollSyncToggle,
-
-    // AI
+    showScrollSync = true,
     aiMode, onAIModeToggle, onAISettings,
     aiLoading, onAiAction,
-
-    // Configuration
     uploadAccept = ".md",
     aiActionLabel = "Convert"
 }) {
@@ -27,215 +17,171 @@ export default function Toolbar({
     const handleFileUpload = async (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
-
-        // Basic validation based on accept prop
-        if (uploadAccept && !file.name.endsWith(uploadAccept.replace('*', ''))) {
-            // Lenient check or just let it pass user discretion
-            // Using strict check for now if specific extension provided
-            const ext = uploadAccept.split(',')[0].trim(); // simple check
-            if (!file.name.toLowerCase().endsWith(ext.replace('*', ''))) {
-                alert(`Please upload a ${ext} file`);
-                return;
-            }
-        }
-
         try {
             const content = await readFileAsText(file);
             onUpload(content);
         } catch (error) {
             console.error('Error reading file:', error);
-            alert('Error reading file. Please try again.');
         }
-
-        // Reset input
         event.target.value = '';
     };
 
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    };
+    const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); };
 
     const handleDrop = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-
         const file = e.dataTransfer.files?.[0];
         if (!file) return;
-
-        // Simple validation
-        if (uploadAccept) {
-            const ext = uploadAccept.split(',')[0].trim();
-            if (!file.name.toLowerCase().endsWith(ext.replace('*', ''))) {
-                alert(`Please drop a ${ext} file`);
-                return;
-            }
-        }
-
         try {
             const content = await readFileAsText(file);
             onUpload(content);
         } catch (error) {
             console.error('Error reading file:', error);
-            alert('Error reading file. Please try again.');
         }
     };
 
-    // Add drag and drop to document
     useEffect(() => {
         document.addEventListener('dragover', handleDragOver);
         document.addEventListener('drop', handleDrop);
-
         return () => {
             document.removeEventListener('dragover', handleDragOver);
             document.removeEventListener('drop', handleDrop);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [uploadAccept]);
 
+    // Staggered animation style helper
+    const stagger = (i) => ({
+        animation: `fadeSlideUp 0.4s ${0.05 + i * 0.04}s cubic-bezier(0.16,1,0.3,1) both`
+    });
+
     return (
-        <div className="glass-strong border-b border-slate-200/50 dark:border-white/10 px-3 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 md:gap-4">
-            <div className="flex items-center gap-4">
-                {/* File Controls */}
-                <div className="flex items-center gap-2">
+        <div className="glass-strong border-b border-slate-200/50 dark:border-white/10 px-3 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 md:gap-4 toolbar-enter">
+            {/* Left: File controls */}
+            <div className="flex items-center gap-2">
+                {[
+                    { icon: '📁', label: 'Upload',  onClick: () => fileInputRef.current?.click(), cls: 'btn-secondary' },
+                    { icon: '📄', label: 'HTML',    onClick: onExportHTML,  cls: 'btn-secondary' },
+                    { icon: '📑', label: 'PDF',     onClick: onExportPDF,   cls: 'btn-secondary' },
+                    { icon: '📋', label: 'Copy',    onClick: onCopy,        cls: 'btn-ghost' },
+                    { icon: '🗑️', label: 'Clear',  onClick: onClear,       cls: 'btn-ghost text-red-600 dark:text-red-400' },
+                ].map(({ icon, label, onClick, cls }, i) => (
                     <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="btn-secondary text-sm"
-                        title={`Upload ${uploadAccept} file`}
+                        key={label}
+                        onClick={onClick}
+                        className={`${cls} text-sm btn-press hover-lift`}
+                        title={label}
+                        style={stagger(i)}
                     >
-                        📁 Upload
+                        {icon} {label}
                     </button>
+                ))}
 
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept={uploadAccept}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                    />
-
-                    <button
-                        onClick={onExportHTML}
-                        className="btn-secondary text-sm"
-                        title="Export as HTML"
-                    >
-                        📄 HTML
-                    </button>
-
-                    <button
-                        onClick={onExportPDF}
-                        className="btn-secondary text-sm"
-                        title="Export as PDF"
-                    >
-                        📑 PDF
-                    </button>
-
-                    <button
-                        onClick={onCopy}
-                        className="btn-ghost text-sm"
-                        title="Copy content"
-                    >
-                        📋 Copy
-                    </button>
-
-                    <button
-                        onClick={onClear}
-                        className="btn-ghost text-sm text-red-600 dark:text-red-400"
-                        title="Clear content"
-                    >
-                        🗑️ Clear
-                    </button>
-                </div>
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={uploadAccept}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                />
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Right: Settings */}
+            <div className="flex items-center gap-3" style={stagger(5)}>
+                {/* Font size */}
                 <div className="flex items-center gap-2">
                     <label className="text-sm text-dark-600 dark:text-dark-400">Size:</label>
                     <button
                         onClick={() => onFontSizeChange(Math.max(12, fontSize - 2))}
-                        className="btn-ghost text-sm px-2 py-1"
+                        className="btn-ghost text-sm px-2 py-1 btn-press"
                         title="Decrease font size"
+                    >A-</button>
+                    <span
+                        className="text-sm font-medium w-8 text-center stat-number"
+                        key={fontSize}
+                        style={{ animation: 'scaleIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both' }}
                     >
-                        A-
-                    </button>
-                    <span className="text-sm font-medium w-8 text-center">{fontSize}</span>
+                        {fontSize}
+                    </span>
                     <button
                         onClick={() => onFontSizeChange(Math.min(24, fontSize + 2))}
-                        className="btn-ghost text-sm px-2 py-1"
+                        className="btn-ghost text-sm px-2 py-1 btn-press"
                         title="Increase font size"
-                    >
-                        A+
-                    </button>
+                    >A+</button>
                 </div>
 
                 <div className="h-6 w-px bg-dark-300 dark:bg-dark-600" />
 
-                {/* AI Mode Controls */}
+                {/* AI Controls */}
                 <div className="flex items-center gap-2">
                     <button
                         onClick={onAIModeToggle}
-                        className={`touch-target p-2 rounded-lg transition-all duration-200 ${aiMode
-                            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-                            : 'hover:bg-dark-100 dark:hover:bg-dark-700 text-dark-500 dark:text-dark-500'
-                            }`}
+                        className={`touch-target p-2 rounded-lg transition-all duration-200 btn-press ${
+                            aiMode
+                                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 pulse-glow'
+                                : 'hover:bg-dark-100 dark:hover:bg-dark-700 text-dark-500'
+                        }`}
                         title={aiMode ? 'Disable AI Mode' : 'Enable AI Mode'}
                     >
                         🤖
                     </button>
 
-                    {/* AI Settings - Always visible when AI mode is ON */}
                     {aiMode && (
-                        <>
+                        <div className="flex items-center gap-2 scale-in">
                             <button
                                 onClick={onAISettings}
-                                className="touch-target p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-all duration-200 text-dark-600 dark:text-dark-400"
+                                className="touch-target p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-all duration-200 btn-press"
                                 title="AI Settings"
+                                style={{ animation: 'scaleIn 0.25s 0.05s cubic-bezier(0.34,1.56,0.64,1) both' }}
                             >
                                 ⚙️
                             </button>
-
-                            {/* AI Action Button (Convert/Explain) */}
                             <button
                                 onClick={onAiAction}
                                 disabled={aiLoading}
-                                className="glass-button px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                title="Run AI Action"
+                                className="glass-button px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 btn-press"
+                                style={{ animation: 'scaleIn 0.25s 0.1s cubic-bezier(0.34,1.56,0.64,1) both' }}
                             >
                                 {aiLoading ? (
                                     <>
-                                        <span className="inline-block animate-spin">⚙️</span>
+                                        <span style={{ display: 'inline-block', animation: 'spin360 1s linear infinite' }}>⚙️</span>
                                         <span>Processing...</span>
                                     </>
                                 ) : (
-                                    <>
-                                        🪄 {aiActionLabel}
-                                    </>
+                                    <>🪄 {aiActionLabel}</>
                                 )}
                             </button>
-                        </>
+                        </div>
                     )}
                 </div>
 
-                <button
-                    onClick={onScrollSyncToggle}
-                    className={`touch-target p-2 rounded-lg transition-all duration-200 ${scrollSync
-                        ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-                        : 'hover:bg-dark-100 dark:hover:bg-dark-700 text-dark-500 dark:text-dark-500'
+                {/* Scroll sync */}
+                {showScrollSync && (
+                    <button
+                        onClick={onScrollSyncToggle}
+                        className={`touch-target p-2 rounded-lg transition-all duration-200 btn-press scale-in ${
+                            scrollSync
+                                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                                : 'hover:bg-dark-100 dark:hover:bg-dark-700 text-dark-500'
                         }`}
-                    title={scrollSync ? 'Disable scroll sync' : 'Enable scroll sync'}
-                >
-                    {scrollSync ? '🔗' : '⛓️‍💥'}
-                </button>
+                        title={scrollSync ? 'Disable scroll sync' : 'Enable scroll sync'}
+                    >
+                        {scrollSync ? '🔗' : '⛓️‍💥'}
+                    </button>
+                )}
 
+                {/* Theme toggle */}
                 <button
                     onClick={onThemeToggle}
-                    className="touch-target p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-all duration-200 text-dark-600 dark:text-dark-400"
+                    className="touch-target p-2 rounded-lg hover:bg-dark-100 dark:hover:bg-dark-700 transition-all duration-200 btn-press hover-lift"
                     title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                    style={{ animation: 'fadeSlideUp 0.4s 0.25s cubic-bezier(0.16,1,0.3,1) both' }}
                 >
-                    {theme === 'dark' ? '☀️' : '🌙'}
+                    <span style={{ display: 'inline-block', transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)' }}>
+                        {theme === 'dark' ? '☀️' : '🌙'}
+                    </span>
                 </button>
             </div>
         </div>
     );
 }
-

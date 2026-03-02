@@ -168,6 +168,13 @@ export async function exportAsPDF(element, filename = 'document.pdf') {
 
   const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
 
+  // Check if element is an iframe body — grab its full document styles too
+  const isIframeBody = element.ownerDocument !== document;
+  const extraStyles = isIframeBody
+    ? Array.from(element.ownerDocument.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map(el => el.outerHTML).join('\n')
+    : '';
+
   // Build print-friendly HTML with embedded styles
   const printHTML = `
     <!DOCTYPE html>
@@ -175,6 +182,7 @@ export async function exportAsPDF(element, filename = 'document.pdf') {
     <head>
       <meta charset="UTF-8">
       <title>${filename.replace('.pdf', '')}</title>
+      ${isIframeBody ? extraStyles : ''}
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -354,6 +362,51 @@ export async function exportAsPDF(element, filename = 'document.pdf') {
     setTimeout(() => {
       document.body.removeChild(iframe);
     }, 1000);
+  }
+
+  return true;
+}
+
+/**
+ * Export raw HTML string as PDF (for HTML editor page)
+ * Prints the HTML directly in a hidden iframe without needing DOM access
+ * @param {string} htmlContent - Raw HTML string from editor
+ * @param {string} filename - Output filename
+ */
+export async function exportHTMLAsPDF(htmlContent, filename = 'document.pdf') {
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;height:297mm;';
+  document.body.appendChild(iframe);
+
+  // Check if it's a full HTML document or a fragment
+  const isFullDoc = /<!doctype|<html/i.test(htmlContent.trim());
+
+  const printContent = isFullDoc ? htmlContent : `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${filename.replace('.pdf', '')}</title>
+  <style>
+    @page { size: A4; margin: 20mm; }
+    * { box-sizing: border-box; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    body { font-family: sans-serif; line-height: 1.6; color: #1e293b; background: #fff; margin: 0; padding: 0; }
+  </style>
+</head>
+<body>${htmlContent}</body>
+</html>`;
+
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+  iframeDoc.open();
+  iframeDoc.write(printContent);
+  iframeDoc.close();
+
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  try {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+  } finally {
+    setTimeout(() => document.body.removeChild(iframe), 1000);
   }
 
   return true;

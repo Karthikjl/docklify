@@ -4,6 +4,7 @@ import Header from './components/Header';
 import Toolbar from './components/Toolbar';
 import StatusBar from './components/StatusBar';
 import AISettings from './components/AISettings';
+import Toast, { useToast } from './components/Toast';
 // Pages
 import MarkdownPage from './pages/MarkdownPage';
 import HtmlPage from './pages/HtmlPage';
@@ -12,7 +13,7 @@ import JsonPage from './pages/JsonPage';
 import { loadMarkdown, saveMarkdown, loadTheme, saveTheme, loadFontSize, saveFontSize, loadHTMLContent, saveHTMLContent, loadJSONContent, saveJSONContent } from './utils/storageUtils';
 import { loadAIMode, saveAIMode, loadProvider, loadApiKey } from './utils/aiStorage';
 import { convertToMarkdown, fixHTML, fixJSON } from './utils/aiService';
-import { exportAsHTML, exportAsPDF, copyHTMLToClipboard } from './utils/exportUtils';
+import { exportAsHTML, exportAsPDF, exportHTMLAsPDF, copyHTMLToClipboard } from './utils/exportUtils';
 import { renderMarkdown } from './renderers/markdownRenderer';
 import { renderHTML } from './renderers/htmlRenderer';
 import { renderJSON } from './renderers/jsonRenderer';
@@ -21,6 +22,8 @@ import { DEFAULT_MARKDOWN, DEFAULT_HTML, DEFAULT_JSON } from './utils/defaultCon
 // Shared context provider
 function AppContent() {
   const location = useLocation();
+
+  const { toasts, removeToast, toast } = useToast();
 
   // Shared State
   const [theme, setTheme] = useState('light');
@@ -126,18 +129,32 @@ function AppContent() {
   }, [currentFormat, htmlContent, jsonContent, markdown]);
 
   const handleExportPDF = useCallback(async () => {
-    const previewElement = document.querySelector('.markdown-preview');
-    if (!previewElement) {
-      alert('Preview not found');
-      return;
-    }
     try {
-      await exportAsPDF(previewElement, 'document.pdf');
+      if (currentFormat === 'html') {
+        // For HTML: build a proper print window from the raw HTML state
+        await exportHTMLAsPDF(htmlContent, 'document.pdf');
+        toast.success('PDF exported successfully!', 'Export');
+        return;
+      } else if (currentFormat === 'json') {
+        // For JSON: create a temporary element with rendered JSON
+        const temp = document.createElement('div');
+        temp.innerHTML = renderJSON(jsonContent);
+        await exportAsPDF(temp, 'document.pdf');
+      } else {
+        // Markdown: use the live preview element
+        const previewElement = document.querySelector('.markdown-preview');
+        if (!previewElement) {
+          toast.error('Markdown preview not found.', 'Export Error');
+          return;
+        }
+        await exportAsPDF(previewElement, 'document.pdf');
+      }
+      toast.success('PDF exported successfully!', 'Export');
     } catch (error) {
       console.error('PDF export error:', error);
-      alert('Error exporting PDF');
+      toast.error('Failed to export PDF. Please try again.', 'Export Error');
     }
-  }, []);
+  }, [currentFormat, htmlContent, jsonContent, markdown, toast]);
 
   const handleCopy = useCallback(async () => {
     let contentToCopy = '';
@@ -147,11 +164,12 @@ function AppContent() {
 
     try {
       await copyHTMLToClipboard(contentToCopy);
-      alert('Content copied to clipboard!');
+      toast.success('Content copied to clipboard!', 'Copied');
     } catch (error) {
       console.error('Copy error:', error);
+      toast.error('Failed to copy. Please try again.', 'Copy Error');
     }
-  }, [currentFormat, htmlContent, jsonContent, markdown]);
+  }, [currentFormat, htmlContent, jsonContent, markdown, toast]);
 
   const handleClear = useCallback(() => {
     if (confirm('Clear current editor content?')) {
@@ -167,13 +185,16 @@ function AppContent() {
 
     // Check if there's content to process
     if (currentFormat === 'markdown' && !markdown.trim()) {
-      return alert('Enter text first');
+      toast.warning('Enter some text first.', 'Nothing to convert');
+      return;
     }
     if (currentFormat === 'html' && !htmlContent.trim()) {
-      return alert('Enter HTML first');
+      toast.warning('Enter some HTML first.', 'Nothing to fix');
+      return;
     }
     if (currentFormat === 'json' && !jsonContent.trim()) {
-      return alert('Enter JSON first');
+      toast.warning('Enter some JSON first.', 'Nothing to fix');
+      return;
     }
 
     setAiLoading(true);
@@ -189,7 +210,7 @@ function AppContent() {
         setJsonContent(result);
       }
     } catch (e) {
-      alert(e.message);
+      toast.error(e.message, 'AI Error');
     } finally {
       setAiLoading(false);
     }
@@ -226,6 +247,7 @@ function AppContent() {
         theme={theme} onThemeToggle={handleThemeToggle}
         fontSize={fontSize} onFontSizeChange={handleFontSizeChange}
         scrollSync={scrollSync} onScrollSyncToggle={() => setScrollSync(!scrollSync)}
+        showScrollSync={currentFormat === 'markdown'}
         aiMode={aiMode} onAIModeToggle={() => { setAiMode(!aiMode); saveAIMode(!aiMode); }}
         onAISettings={() => setShowAISettings(true)}
         aiLoading={aiLoading} onAiAction={handleAiAction}
@@ -233,7 +255,7 @@ function AppContent() {
         aiActionLabel={toolbarConfig.label}
       />
 
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 overflow-hidden relative" style={{ isolation: 'isolate' }}>
         <Routes>
           <Route path="/" element={<MarkdownPage {...sharedProps} />} />
           <Route path="/html" element={<HtmlPage {...sharedProps} />} />
@@ -249,6 +271,8 @@ function AppContent() {
         onClose={() => setShowAISettings(false)}
         onSave={(p, k) => { setAiProvider(p); setAiApiKey(k); }}
       />
+
+      <Toast toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }
