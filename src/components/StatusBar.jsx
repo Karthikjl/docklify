@@ -6,7 +6,7 @@ export default function StatusBar({ markdown }) {
     const lineCount = getLineCount(markdown);
 
     return (
-        <div className="glass-strong border-t border-white/20 dark:border-dark-700/50 px-3 md:px-6 py-2 flex items-center justify-between text-sm text-dark-600 dark:text-dark-400">
+        <div className="glass-strong border-t border-slate-200/50 dark:border-white/10 px-3 md:px-6 py-2 flex items-center justify-between text-sm text-dark-600 dark:text-dark-400">
             <div className="flex items-center gap-3 md:gap-6">
                 <div className="flex items-center gap-2">
                     <span className="font-medium hidden sm:inline">Lines:</span>

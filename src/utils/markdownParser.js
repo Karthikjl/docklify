@@ -10,7 +10,12 @@ const md = new MarkdownIt({
     typographer: true, // Enable smart quotes and other typographic replacements
     breaks: true, // Convert \n to <br>
     highlight: function (str, lang) {
-        // Basic syntax highlighting placeholder
+        // Mark mermaid code blocks with a special class for client-side rendering
+        if (lang && lang.toLowerCase() === 'mermaid') {
+            return `<pre class="mermaid-code"><code class="language-mermaid">${md.utils.escapeHtml(str)}</code></pre>`;
+        }
+
+        // Basic syntax highlighting placeholder for other languages
         if (lang) {
             return `<pre class="language-${lang}"><code>${md.utils.escapeHtml(str)}</code></pre>`;
         }
@@ -23,13 +28,28 @@ const md = new MarkdownIt({
         errorColor: '#cc0000'
     });
 
-// Custom renderer for links to open in new tab
+// Add support for additional link protocols (including magnet links)
+md.linkify.add('magnet:', {
+    validate: function (text, pos, self) {
+        const tail = text.slice(pos);
+        if (!self.re.magnet) {
+            self.re.magnet = new RegExp('^[?][^\\s]*');
+        }
+        if (self.re.magnet.test(tail)) {
+            return tail.match(self.re.magnet)[0].length;
+        }
+        return 0;
+    }
+});
+
+// Custom renderer for links to open in new tab and support all protocols
 const defaultRender = md.renderer.rules.link_open || function (tokens, idx, options, env, self) {
     return self.renderToken(tokens, idx, options);
 };
 
 md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
     const aIndex = tokens[idx].attrIndex('target');
+    const hrefIndex = tokens[idx].attrIndex('href');
 
     if (aIndex < 0) {
         tokens[idx].attrPush(['target', '_blank']);

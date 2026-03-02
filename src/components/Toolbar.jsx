@@ -1,22 +1,26 @@
 import { useRef, useEffect } from 'react';
-import { exportAsHTML, exportAsPDF, copyHTMLToClipboard, readFileAsText } from '../utils/exportUtils';
-import { parseMarkdown } from '../utils/markdownParser';
+import { readFileAsText } from '../utils/exportUtils';
 
 export default function Toolbar({
-    markdown,
-    onMarkdownChange,
-    theme,
-    onThemeToggle,
-    fontSize,
-    onFontSizeChange,
+    // Actions
+    onUpload,
+    onExportHTML,
+    onExportPDF,
+    onCopy,
     onClear,
-    scrollSync,
-    onScrollSyncToggle,
-    aiMode,
-    onAIModeToggle,
-    onAISettings,
-    onConvertToMarkdown,
-    aiLoading
+
+    // Settings
+    theme, onThemeToggle,
+    fontSize, onFontSizeChange,
+    scrollSync, onScrollSyncToggle,
+
+    // AI
+    aiMode, onAIModeToggle, onAISettings,
+    aiLoading, onAiAction,
+
+    // Configuration
+    uploadAccept = ".md",
+    aiActionLabel = "Convert"
 }) {
     const fileInputRef = useRef(null);
 
@@ -24,14 +28,20 @@ export default function Toolbar({
         const file = event.target.files?.[0];
         if (!file) return;
 
-        if (!file.name.endsWith('.md')) {
-            alert('Please upload a .md file');
-            return;
+        // Basic validation based on accept prop
+        if (uploadAccept && !file.name.endsWith(uploadAccept.replace('*', ''))) {
+            // Lenient check or just let it pass user discretion
+            // Using strict check for now if specific extension provided
+            const ext = uploadAccept.split(',')[0].trim(); // simple check
+            if (!file.name.toLowerCase().endsWith(ext.replace('*', ''))) {
+                alert(`Please upload a ${ext} file`);
+                return;
+            }
         }
 
         try {
             const content = await readFileAsText(file);
-            onMarkdownChange(content);
+            onUpload(content);
         } catch (error) {
             console.error('Error reading file:', error);
             alert('Error reading file. Please try again.');
@@ -39,37 +49,6 @@ export default function Toolbar({
 
         // Reset input
         event.target.value = '';
-    };
-
-    const handleExportHTML = () => {
-        const html = parseMarkdown(markdown);
-        exportAsHTML(html, 'document.html');
-    };
-
-    const handleExportPDF = async () => {
-        const previewElement = document.querySelector('.markdown-preview');
-        if (!previewElement) {
-            alert('Preview not found');
-            return;
-        }
-
-        try {
-            await exportAsPDF(previewElement, 'document.pdf');
-        } catch (error) {
-            console.error('PDF export error:', error);
-            alert('Error exporting PDF. Please try again.');
-        }
-    };
-
-    const handleCopyHTML = async () => {
-        const html = parseMarkdown(markdown);
-        try {
-            await copyHTMLToClipboard(html);
-            alert('HTML copied to clipboard!');
-        } catch (error) {
-            console.error('Copy error:', error);
-            alert('Error copying to clipboard');
-        }
     };
 
     const handleDragOver = (e) => {
@@ -84,14 +63,18 @@ export default function Toolbar({
         const file = e.dataTransfer.files?.[0];
         if (!file) return;
 
-        if (!file.name.endsWith('.md')) {
-            alert('Please drop a .md file');
-            return;
+        // Simple validation
+        if (uploadAccept) {
+            const ext = uploadAccept.split(',')[0].trim();
+            if (!file.name.toLowerCase().endsWith(ext.replace('*', ''))) {
+                alert(`Please drop a ${ext} file`);
+                return;
+            }
         }
 
         try {
             const content = await readFileAsText(file);
-            onMarkdownChange(content);
+            onUpload(content);
         } catch (error) {
             console.error('Error reading file:', error);
             alert('Error reading file. Please try again.');
@@ -108,25 +91,17 @@ export default function Toolbar({
             document.removeEventListener('drop', handleDrop);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [uploadAccept]);
 
     return (
-        <div className="glass-strong border-b border-white/20 dark:border-dark-700/50 px-3 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+        <div className="glass-strong border-b border-slate-200/50 dark:border-white/10 px-3 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 md:gap-4">
             <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3">
-                    <img src="/logo.svg" alt="AI Markdown Viewer" className="w-8 h-8" />
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent">
-                        AI Markdown Viewer Online
-                    </h1>
-                </div>
-
-                <div className="h-6 w-px bg-dark-300 dark:bg-dark-600" />
-
+                {/* File Controls */}
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         className="btn-secondary text-sm"
-                        title="Upload .md file"
+                        title={`Upload ${uploadAccept} file`}
                     >
                         📁 Upload
                     </button>
@@ -134,13 +109,13 @@ export default function Toolbar({
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".md"
+                        accept={uploadAccept}
                         onChange={handleFileUpload}
                         className="hidden"
                     />
 
                     <button
-                        onClick={handleExportHTML}
+                        onClick={onExportHTML}
                         className="btn-secondary text-sm"
                         title="Export as HTML"
                     >
@@ -148,7 +123,7 @@ export default function Toolbar({
                     </button>
 
                     <button
-                        onClick={handleExportPDF}
+                        onClick={onExportPDF}
                         className="btn-secondary text-sm"
                         title="Export as PDF"
                     >
@@ -156,9 +131,9 @@ export default function Toolbar({
                     </button>
 
                     <button
-                        onClick={handleCopyHTML}
+                        onClick={onCopy}
                         className="btn-ghost text-sm"
-                        title="Copy HTML"
+                        title="Copy content"
                     >
                         📋 Copy
                     </button>
@@ -219,21 +194,21 @@ export default function Toolbar({
                                 ⚙️
                             </button>
 
-                            {/* Convert to Markdown Button */}
+                            {/* AI Action Button (Convert/Explain) */}
                             <button
-                                onClick={onConvertToMarkdown}
+                                onClick={onAiAction}
                                 disabled={aiLoading}
-                                className="glass-button px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Convert plain text to Markdown using AI"
+                                className="glass-button px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                title="Run AI Action"
                             >
                                 {aiLoading ? (
                                     <>
                                         <span className="inline-block animate-spin">⚙️</span>
-                                        <span className="ml-2">Converting...</span>
+                                        <span>Processing...</span>
                                     </>
                                 ) : (
                                     <>
-                                        🪄 Convert
+                                        🪄 {aiActionLabel}
                                     </>
                                 )}
                             </button>
@@ -263,3 +238,4 @@ export default function Toolbar({
         </div>
     );
 }
+

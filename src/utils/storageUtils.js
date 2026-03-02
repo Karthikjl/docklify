@@ -73,6 +73,46 @@ export function saveFontSize(size) {
     }
 }
 
+// HTML Content Storage
+const HTML_CONTENT_KEY = 'doclify_html_content';
+
+export function loadHTMLContent() {
+    try {
+        return localStorage.getItem(HTML_CONTENT_KEY);
+    } catch (error) {
+        console.error('Failed to load HTML content:', error);
+        return null;
+    }
+}
+
+export function saveHTMLContent(content) {
+    try {
+        localStorage.setItem(HTML_CONTENT_KEY, content);
+    } catch (error) {
+        console.error('Failed to save HTML content:', error);
+    }
+}
+
+// JSON Content Storage
+const JSON_CONTENT_KEY = 'doclify_json_content';
+
+export function loadJSONContent() {
+    try {
+        return localStorage.getItem(JSON_CONTENT_KEY);
+    } catch (error) {
+        console.error('Failed to load JSON content:', error);
+        return null;
+    }
+}
+
+export function saveJSONContent(content) {
+    try {
+        localStorage.setItem(JSON_CONTENT_KEY, content);
+    } catch (error) {
+        console.error('Failed to save JSON content:', error);
+    }
+}
+
 /**
  * Load font size preference
  * @returns {number} - Saved font size

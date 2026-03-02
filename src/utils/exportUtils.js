@@ -13,9 +13,12 @@ export function exportAsHTML(html, filename = 'document.html') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${filename.replace('.html', '')}</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
       line-height: 1.6;
       max-width: 800px;
       margin: 0 auto;
@@ -173,6 +176,9 @@ export async function exportAsPDF(element, filename = 'document.pdf') {
       <meta charset="UTF-8">
       <title>${filename.replace('.pdf', '')}</title>
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
       <style>
         @page {
           size: A4;
@@ -186,7 +192,7 @@ export async function exportAsPDF(element, filename = 'document.pdf') {
         }
         
         body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
           line-height: 1.6;
           color: #1e293b;
           background: #ffffff;

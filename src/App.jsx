@@ -1,204 +1,264 @@
 import { useState, useEffect, useCallback } from 'react';
-import Editor from './components/Editor';
-import Preview from './components/Preview';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import Header from './components/Header';
 import Toolbar from './components/Toolbar';
 import StatusBar from './components/StatusBar';
 import AISettings from './components/AISettings';
-import ResizablePanels from './components/ResizablePanels';
-import { loadMarkdown, saveMarkdown, loadTheme, saveTheme, loadFontSize, saveFontSize } from './utils/storageUtils';
-import { loadAIMode, saveAIMode, loadProvider, loadApiKey, hasApiKey } from './utils/aiStorage';
-import { convertToMarkdown } from './utils/aiService';
+// Pages
+import MarkdownPage from './pages/MarkdownPage';
+import HtmlPage from './pages/HtmlPage';
+import JsonPage from './pages/JsonPage';
+// Utils
+import { loadMarkdown, saveMarkdown, loadTheme, saveTheme, loadFontSize, saveFontSize, loadHTMLContent, saveHTMLContent, loadJSONContent, saveJSONContent } from './utils/storageUtils';
+import { loadAIMode, saveAIMode, loadProvider, loadApiKey } from './utils/aiStorage';
+import { convertToMarkdown, fixHTML, fixJSON } from './utils/aiService';
+import { exportAsHTML, exportAsPDF, copyHTMLToClipboard } from './utils/exportUtils';
+import { renderMarkdown } from './renderers/markdownRenderer';
+import { renderHTML } from './renderers/htmlRenderer';
+import { renderJSON } from './renderers/jsonRenderer';
+import { DEFAULT_MARKDOWN, DEFAULT_HTML, DEFAULT_JSON } from './utils/defaultContent';
 
-function App() {
-  const [markdown, setMarkdown] = useState('');
+// Shared context provider
+function AppContent() {
+  const location = useLocation();
+
+  // Shared State
   const [theme, setTheme] = useState('light');
   const [fontSize, setFontSize] = useState(16);
-  const [scrollSync, setScrollSync] = useState(true); // Enable scroll sync by default
+  const [scrollSync, setScrollSync] = useState(true);
 
-  // AI Mode states
+  // Content State
+  const [markdown, setMarkdown] = useState('');
+  const [htmlContent, setHtmlContent] = useState('');
+  const [jsonContent, setJsonContent] = useState('');
+
+  // AI State
   const [aiMode, setAiMode] = useState(false);
   const [aiProvider, setAiProvider] = useState('gemini');
   const [aiApiKey, setAiApiKey] = useState('');
   const [showAISettings, setShowAISettings] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
 
-  // Load saved data on mount
+  // Initial Load
   useEffect(() => {
     const savedMarkdown = loadMarkdown();
+    const savedHTML = loadHTMLContent();
+    const savedJSON = loadJSONContent();
+
+    setMarkdown(savedMarkdown || DEFAULT_MARKDOWN);
+    setHtmlContent(savedHTML || DEFAULT_HTML);
+    setJsonContent(savedJSON || DEFAULT_JSON);
+
     const savedTheme = loadTheme();
-    const savedFontSize = loadFontSize();
-    const savedAIMode = loadAIMode();
-    const savedProvider = loadProvider();
-    const savedApiKey = loadApiKey();
-
-    setMarkdown(savedMarkdown);
     setTheme(savedTheme);
-    setFontSize(savedFontSize);
-    setAiMode(savedAIMode);
-    setAiProvider(savedProvider);
-    setAiApiKey(savedApiKey);
+    setFontSize(loadFontSize());
+    setAiMode(loadAIMode());
+    setAiProvider(loadProvider());
+    setAiApiKey(loadApiKey());
 
-    // Apply theme to document
     if (savedTheme === 'dark') {
       document.documentElement.classList.add('dark');
     }
   }, []);
 
-  // Auto-save markdown with debounce
+  // Auto-save markdown
   useEffect(() => {
-    const timer = setTimeout(() => {
-      saveMarkdown(markdown);
-    }, 500);
-
+    const timer = setTimeout(() => saveMarkdown(markdown), 500);
     return () => clearTimeout(timer);
   }, [markdown]);
 
-  // Handle theme toggle
+  // Auto-save HTML
+  useEffect(() => {
+    const timer = setTimeout(() => saveHTMLContent(htmlContent), 500);
+    return () => clearTimeout(timer);
+  }, [htmlContent]);
+
+  // Auto-save JSON
+  useEffect(() => {
+    const timer = setTimeout(() => saveJSONContent(jsonContent), 500);
+    return () => clearTimeout(timer);
+  }, [jsonContent]);
+
+  // Theme Toggle
   const handleThemeToggle = useCallback(() => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
     saveTheme(newTheme);
-
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    if (newTheme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
   }, [theme]);
 
-  // Handle font size change
-  const handleFontSizeChange = useCallback((newSize) => {
-    setFontSize(newSize);
-    saveFontSize(newSize);
+  const handleFontSizeChange = useCallback((size) => {
+    setFontSize(size);
+    saveFontSize(size);
   }, []);
 
-  // Handle clear
+  // Determine active format based on path
+  const getFormat = () => {
+    if (location.pathname === '/html') return 'html';
+    if (location.pathname === '/json') return 'json';
+    return 'markdown';
+  };
+  const currentFormat = getFormat();
+
+  // Dynamic Handlers
+  const handleUpload = useCallback((content) => {
+    if (currentFormat === 'html') setHtmlContent(content);
+    else if (currentFormat === 'json') setJsonContent(content);
+    else {
+      setMarkdown(content);
+      saveMarkdown(content);
+    }
+  }, [currentFormat]);
+
+  const handleExportHTML = useCallback(() => {
+    let contentToExport = '';
+    let filename = 'document.html';
+
+    if (currentFormat === 'html') {
+      contentToExport = htmlContent;
+    } else if (currentFormat === 'json') {
+      contentToExport = renderJSON(jsonContent);
+    } else {
+      contentToExport = renderMarkdown(markdown);
+    }
+    exportAsHTML(contentToExport, filename);
+  }, [currentFormat, htmlContent, jsonContent, markdown]);
+
+  const handleExportPDF = useCallback(async () => {
+    const previewElement = document.querySelector('.markdown-preview');
+    if (!previewElement) {
+      alert('Preview not found');
+      return;
+    }
+    try {
+      await exportAsPDF(previewElement, 'document.pdf');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      alert('Error exporting PDF');
+    }
+  }, []);
+
+  const handleCopy = useCallback(async () => {
+    let contentToCopy = '';
+    if (currentFormat === 'html') contentToCopy = htmlContent;
+    else if (currentFormat === 'json') contentToCopy = renderJSON(jsonContent);
+    else contentToCopy = renderMarkdown(markdown);
+
+    try {
+      await copyHTMLToClipboard(contentToCopy);
+      alert('Content copied to clipboard!');
+    } catch (error) {
+      console.error('Copy error:', error);
+    }
+  }, [currentFormat, htmlContent, jsonContent, markdown]);
+
   const handleClear = useCallback(() => {
-    if (confirm('Are you sure you want to clear all content?')) {
-      setMarkdown('');
+    if (confirm('Clear current editor content?')) {
+      if (currentFormat === 'html') setHtmlContent('');
+      else if (currentFormat === 'json') setJsonContent('');
+      else setMarkdown('');
     }
-  }, []);
+  }, [currentFormat]);
 
-  // Handle scroll sync toggle
-  const handleScrollSyncToggle = useCallback(() => {
-    setScrollSync(prev => !prev);
-  }, []);
+  // AI Handler (for all formats)
+  const handleAiAction = useCallback(async () => {
+    if (!aiApiKey) { setShowAISettings(true); return; }
 
-  // Handle AI mode toggle
-  const handleAIModeToggle = useCallback(() => {
-    const newMode = !aiMode;
-    setAiMode(newMode);
-    saveAIMode(newMode);
-
-    // If enabling AI mode and no API key, show settings
-    if (newMode && !hasApiKey()) {
-      setShowAISettings(true);
+    // Check if there's content to process
+    if (currentFormat === 'markdown' && !markdown.trim()) {
+      return alert('Enter text first');
     }
-  }, [aiMode]);
-
-  // Handle AI settings save
-  const handleAISettingsSave = useCallback((provider, apiKey) => {
-    setAiProvider(provider);
-    setAiApiKey(apiKey);
-  }, []);
-
-  // Handle convert to Markdown
-  const handleConvertToMarkdown = useCallback(async () => {
-    console.log('🤖 AI Conversion started');
-    console.log('API Key exists:', !!aiApiKey);
-    console.log('Provider:', aiProvider);
-    console.log('Input text length:', markdown?.length);
-
-    if (!aiApiKey) {
-      console.log('⚠️ No API key, opening settings');
-      setShowAISettings(true);
-      return;
+    if (currentFormat === 'html' && !htmlContent.trim()) {
+      return alert('Enter HTML first');
     }
-
-    if (!markdown || markdown.trim().length === 0) {
-      console.log('⚠️ No text to convert');
-      alert('Please enter some text to convert');
-      return;
+    if (currentFormat === 'json' && !jsonContent.trim()) {
+      return alert('Enter JSON first');
     }
 
     setAiLoading(true);
-    console.log('⏳ Loading started');
-
     try {
-      console.log('📤 Sending to AI...');
-      const convertedMarkdown = await convertToMarkdown(markdown, aiProvider, aiApiKey);
-      console.log('✅ AI Response received, length:', convertedMarkdown?.length);
-      console.log('📝 Converted text preview:', convertedMarkdown?.substring(0, 100));
-
-      setMarkdown(convertedMarkdown);
-      console.log('✅ Markdown state updated');
-    } catch (error) {
-      console.error('❌ Conversion error:', error);
-      alert(`Error: ${error.message}`);
+      if (currentFormat === 'markdown') {
+        const result = await convertToMarkdown(markdown, aiProvider, aiApiKey);
+        setMarkdown(result);
+      } else if (currentFormat === 'html') {
+        const result = await fixHTML(htmlContent, aiProvider, aiApiKey);
+        setHtmlContent(result);
+      } else if (currentFormat === 'json') {
+        const result = await fixJSON(jsonContent, aiProvider, aiApiKey);
+        setJsonContent(result);
+      }
+    } catch (e) {
+      alert(e.message);
     } finally {
       setAiLoading(false);
-      console.log('⏹️ Loading stopped');
     }
-  }, [markdown, aiProvider, aiApiKey]);
+  }, [currentFormat, markdown, htmlContent, jsonContent, aiProvider, aiApiKey]);
+
+  // Configuration for Toolbar
+  const getToolbarConfig = () => {
+    switch (currentFormat) {
+      case 'html': return { accept: '.html,.htm', label: 'Fix HTML' };
+      case 'json': return { accept: '.json', label: 'Fix JSON' };
+      default: return { accept: '.md,.txt', label: 'Convert' };
+    }
+  };
+  const toolbarConfig = getToolbarConfig();
+
+  // Shared props for pages
+  const sharedProps = {
+    markdown, setMarkdown,
+    htmlContent, setHtmlContent,
+    jsonContent, setJsonContent,
+    theme, fontSize, scrollSync
+  };
 
   return (
-    <div className={`flex flex-col h-screen ${theme === 'light' ? 'light-theme' : ''}`}>
+    <div className={`flex flex-col h-screen ${theme === 'light' ? 'light-theme' : ''} bg-transparent text-slate-900 dark:text-white transition-colors duration-300`}>
+      <Header />
+
       <Toolbar
-        markdown={markdown}
-        onMarkdownChange={setMarkdown}
-        theme={theme}
-        onThemeToggle={handleThemeToggle}
-        fontSize={fontSize}
-        onFontSizeChange={handleFontSizeChange}
+        onUpload={handleUpload}
+        onExportHTML={handleExportHTML}
+        onExportPDF={handleExportPDF}
+        onCopy={handleCopy}
         onClear={handleClear}
-        scrollSync={scrollSync}
-        onScrollSyncToggle={handleScrollSyncToggle}
-        aiMode={aiMode}
-        onAIModeToggle={handleAIModeToggle}
+        theme={theme} onThemeToggle={handleThemeToggle}
+        fontSize={fontSize} onFontSizeChange={handleFontSizeChange}
+        scrollSync={scrollSync} onScrollSyncToggle={() => setScrollSync(!scrollSync)}
+        aiMode={aiMode} onAIModeToggle={() => { setAiMode(!aiMode); saveAIMode(!aiMode); }}
         onAISettings={() => setShowAISettings(true)}
-        onConvertToMarkdown={handleConvertToMarkdown}
-        aiLoading={aiLoading}
+        aiLoading={aiLoading} onAiAction={handleAiAction}
+        uploadAccept={toolbarConfig.accept}
+        aiActionLabel={toolbarConfig.label}
       />
 
-      <ResizablePanels
-        leftPanel={
-          <div className="glass-panel flex flex-col h-full">
-            <div className="px-5 py-4 border-b border-white/10">
-              <h2 className="text-sm font-semibold text-white/90">📝 Editor</h2>
-            </div>
-            <Editor
-              value={markdown}
-              onChange={setMarkdown}
-              theme={theme}
-              fontSize={fontSize}
-              scrollSync={scrollSync}
-            />
-          </div>
-        }
-        rightPanel={
-          <div className="glass-panel flex flex-col h-full">
-            <div className="px-5 py-4 border-b border-white/10">
-              <h2 className="text-sm font-semibold text-white/90">👁️ Preview</h2>
-            </div>
-            <Preview
-              markdown={markdown}
-              theme={theme}
-              fontSize={fontSize}
-              scrollSync={scrollSync}
-            />
-          </div>
-        }
-      />
+      <div className="flex-1 overflow-hidden relative">
+        <Routes>
+          <Route path="/" element={<MarkdownPage {...sharedProps} />} />
+          <Route path="/html" element={<HtmlPage {...sharedProps} />} />
+          <Route path="/json" element={<JsonPage {...sharedProps} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
 
-      <StatusBar markdown={markdown} />
+      <StatusBar markdown={currentFormat === 'markdown' ? markdown : (currentFormat === 'html' ? htmlContent : jsonContent)} />
 
-      {/* AI Settings Modal */}
       <AISettings
         isOpen={showAISettings}
         onClose={() => setShowAISettings(false)}
-        onSave={handleAISettingsSave}
+        onSave={(p, k) => { setAiProvider(p); setAiApiKey(k); }}
       />
     </div>
+  );
+}
+
+// Main App with Router
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }
 

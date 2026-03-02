@@ -222,3 +222,201 @@ export async function convertToMarkdown(text, provider, apiKey) {
         throw new Error(`Unsupported provider: ${provider}`);
     }
 }
+
+/**
+ * Fix HTML syntax errors using AI
+ */
+export async function fixHTML(html, provider, apiKey) {
+    if (!html || !html.trim()) {
+        throw new Error('Input HTML is empty');
+    }
+
+    if (!apiKey) {
+        throw new Error('API key is required');
+    }
+
+    const prompt = `You are an expert HTML syntax fixer. Fix ONLY syntax errors while preserving the document structure.
+
+CRITICAL RULES:
+1. Output ONLY valid HTML - no explanations, no markdown code blocks
+2. PRESERVE the complete document structure including:
+   - <!DOCTYPE html> declaration
+   - <html>, <head>, <body> tags
+   - All existing tags and structure
+3. Fix ONLY these types of errors:
+   - Unclosed tags (e.g., <div> without </div>)
+   - Missing quotes around attribute values (e.g., class=container → class="container")
+   - Improperly nested tags
+   - Invalid HTML syntax
+4. PRESERVE self-closing tags (e.g., <meta />, <br />, <img />)
+5. PRESERVE all styles, scripts, and content exactly as written
+6. Format with 2-space indentation
+7. Do NOT remove or restructure working HTML
+
+INPUT HTML:
+"""
+${html}
+"""
+
+FIXED HTML OUTPUT (only syntax fixes, preserve all structure):`;
+
+    try {
+        let result;
+        if (provider === 'gemini') {
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            temperature: 0.1,
+                            maxOutputTokens: 8192,
+                        },
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Gemini API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            result = data.candidates[0].content.parts[0].text.trim();
+        } else {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        { role: 'system', content: 'You are an HTML syntax fixer. Fix only syntax errors and preserve all document structure.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.1,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`OpenAI API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            result = data.choices[0].message.content.trim();
+        }
+
+        // Remove code block wrappers if present
+        if (result.startsWith('```html')) {
+            result = result.replace(/^```html\n/, '').replace(/\n```$/, '');
+        } else if (result.startsWith('```')) {
+            result = result.replace(/^```\n/, '').replace(/\n```$/, '');
+        }
+
+        return result.trim();
+    } catch (error) {
+        throw new Error(`Failed to fix HTML: ${error.message}`);
+    }
+}
+
+/**
+ * Fix JSON syntax errors using AI
+ */
+export async function fixJSON(json, provider, apiKey) {
+    if (!json || !json.trim()) {
+        throw new Error('Input JSON is empty');
+    }
+
+    if (!apiKey) {
+        throw new Error('API key is required');
+    }
+
+    const prompt = `You are an expert JSON syntax fixer. Your task is to fix any JSON syntax errors and format the code properly.
+
+CRITICAL RULES:
+1. Output ONLY valid JSON - no explanations, no comments, no markdown code blocks
+2. Fix all syntax errors (missing/extra commas, quotes, brackets, etc.)
+3. Format with proper indentation (2 spaces)
+4. Preserve all data and structure
+5. Convert single quotes to double quotes
+6. Remove trailing commas
+7. Quote all keys
+
+INPUT JSON WITH POSSIBLE ERRORS:
+"""
+${json}
+"""
+
+FIXED JSON OUTPUT (no explanations, just the corrected JSON):`;
+
+    try {
+        let result;
+        if (provider === 'gemini') {
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            temperature: 0.1,
+                            maxOutputTokens: 8192,
+                        },
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Gemini API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            result = data.candidates[0].content.parts[0].text.trim();
+        } else {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        { role: 'system', content: 'You are a JSON syntax fixer.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.1,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`OpenAI API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            result = data.choices[0].message.content.trim();
+        }
+
+        // Remove code block wrappers if present
+        if (result.startsWith('```json')) {
+            result = result.replace(/^```json\n/, '').replace(/\n```$/, '');
+        } else if (result.startsWith('```')) {
+            result = result.replace(/^```\n/, '').replace(/\n```$/, '');
+        }
+
+        // Validate that the result is actually valid JSON
+        try {
+            JSON.parse(result);
+        } catch (e) {
+            throw new Error('AI returned invalid JSON. Please check your input.');
+        }
+
+        return result.trim();
+    } catch (error) {
+        throw new Error(`Failed to fix JSON: ${error.message}`);
+    }
+}

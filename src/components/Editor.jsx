@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
-import Editor from '@monaco-editor/react';
+import MonacoEditor from '@monaco-editor/react';
 
-export default function MarkdownEditor({ value, onChange, theme, fontSize, scrollSync }) {
+export default function Editor({ value, onChange, theme, fontSize, scrollSync, language = 'markdown' }) {
     const editorRef = useRef(null);
-    const isScrolling = useRef(false);
+    const scrollCount = useRef(0);
 
     function handleEditorDidMount(editor, monaco) {
         editorRef.current = editor;
@@ -31,8 +31,11 @@ export default function MarkdownEditor({ value, onChange, theme, fontSize, scrol
 
         // Handle scroll sync
         editor.onDidScrollChange((e) => {
-            if (!scrollSync || isScrolling.current) {
-                isScrolling.current = false;
+            if (!scrollSync) return;
+
+            // If this scroll was triggered programmatically, ignore it and decrement counter
+            if (scrollCount.current > 0) {
+                scrollCount.current -= 1;
                 return;
             }
 
@@ -59,18 +62,23 @@ export default function MarkdownEditor({ value, onChange, theme, fontSize, scrol
         if (!scrollSync || !editorRef.current) return;
 
         const handlePreviewScroll = (event) => {
-            if (isScrolling.current) {
-                isScrolling.current = false;
-                return;
-            }
+            // Just process the event, don't check the flag here
+            // The flag is checked in the onDidScrollChange handler
 
             const { scrollPercentage } = event.detail;
             if (editorRef.current) {
                 const scrollHeight = editorRef.current.getScrollHeight();
                 const clientHeight = editorRef.current.getLayoutInfo().height;
                 const maxScroll = scrollHeight - clientHeight;
-                isScrolling.current = true;
-                editorRef.current.setScrollTop(maxScroll * scrollPercentage);
+
+                const targetScrollTop = maxScroll * scrollPercentage;
+                const currentScrollTop = editorRef.current.getScrollTop();
+
+                // Only trigger scroll if difference is significant (to avoid micro-loops)
+                if (Math.abs(targetScrollTop - currentScrollTop) > 5) {
+                    scrollCount.current += 1;
+                    editorRef.current.setScrollTop(targetScrollTop);
+                }
             }
         };
 
@@ -80,9 +88,9 @@ export default function MarkdownEditor({ value, onChange, theme, fontSize, scrol
 
     return (
         <div className="h-full w-full">
-            <Editor
+            <MonacoEditor
                 height="100%"
-                defaultLanguage="markdown"
+                language={language}
                 value={value}
                 onChange={onChange}
                 theme={theme === 'dark' ? 'vs-dark' : 'light'}
