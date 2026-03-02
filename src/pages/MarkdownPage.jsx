@@ -38,8 +38,8 @@ export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, s
 
                         {isEmpty ? (
                             <div className="flex-1 flex items-center justify-center p-8">
-                                <div className="text-center max-w-md">
-                                    <div className="text-6xl mb-4">✨</div>
+                                <div className="text-center max-w-md welcome-bounce">
+                                    <div className="text-6xl mb-4">✨<span className="cursor-blink">|</span></div>
                                     <h2 className="text-2xl font-bold mb-3 text-gray-800 dark:text-gray-100">
                                         Start Creating!
                                     </h2>

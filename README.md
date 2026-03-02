@@ -1,152 +1,123 @@
-# 📝 Online Markdown Viewer
+# 🚀 Doclify
 
-A powerful, feature-rich online Markdown viewer with real-time preview, built with React and Vite.
+> A premium, multi-format document viewer and editor with live preview — built with React, Monaco Editor, and Vite.
 
-![Markdown Viewer](https://img.shields.io/badge/React-19.2-blue)
-![Vite](https://img.shields.io/badge/Vite-7.2-purple)
-![Tailwind](https://img.shields.io/badge/Tailwind-3.4-cyan)
+![React](https://img.shields.io/badge/React-19.2-61dafb?logo=react&logoColor=white&style=flat-square)
+![Vite](https://img.shields.io/badge/Vite-7.2-646cff?logo=vite&logoColor=white&style=flat-square)
+![Tailwind](https://img.shields.io/badge/Tailwind-3.4-38bdf8?logo=tailwindcss&logoColor=white&style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+
+---
 
 ## ✨ Features
 
-### Core Features
-- 📝 **Live Preview** - Real-time markdown rendering as you type
-- 🎨 **Monaco Editor** - Professional code editor (same as VS Code)
-- 🌓 **Dark Mode** - Beautiful light and dark themes
-- 💾 **Auto-Save** - Automatic localStorage persistence
-- 📊 **Status Bar** - Word count, character count, and line count
+### 📝 Three Editor Modes
+| Mode | Description |
+|------|-------------|
+| **Markdown** | Full GFM rendering with live preview |
+| **HTML** | Write & preview HTML in an isolated iframe |
+| **JSON** | Validate, format & view JSON with syntax highlighting |
 
-### Markdown Support
-- ✅ **GitHub Flavored Markdown (GFM)** - Full GFM support
-- 📋 **Task Lists** - Interactive checkboxes
-- 📊 **Tables** - Beautiful table rendering
-- 😀 **Emojis** - Full emoji support
-- 🔗 **Auto-linking** - Automatic URL detection
+### 🎯 Markdown Capabilities
+- **Mermaid Diagrams** — Flowcharts, sequence diagrams, class diagrams, Gantt, and more
+- **KaTeX Math** — Inline (`$...$`) and block (`$$...$$`) LaTeX formulas
+- **Task Lists** — Interactive checkboxes
+- **Tables** — Full GitHub-flavored table support
+- **Syntax Highlighting** — Language-labeled code blocks
+- **Auto-linking** — URLs and custom protocols (including `magnet:`)
+- **Blockquotes, footnotes, smart typography**
 
-### Advanced Features
-- 📈 **Mermaid Diagrams** - Flowcharts, sequence diagrams, and more
-- 🧮 **LaTeX Math** - Inline and block math formulas with KaTeX
-- 🎯 **Syntax Highlighting** - Code blocks with language support
-- 🔒 **XSS Protection** - DOMPurify sanitization for security
+### 🖥️ Editor
+- **Monaco Editor** (same engine as VS Code) with full markdown, HTML, and JSON language support
+- Line numbers, word wrap, smooth scrolling, Fira Code font
+- **Scroll Sync** — Editor and preview scroll together
 
-### File Operations
-- 📁 **File Upload** - Upload .md files
-- 🖱️ **Drag & Drop** - Drag and drop markdown files
-- 📄 **Export to HTML** - Download as styled HTML
-- 📑 **Export to PDF** - Generate PDF documents
-- 📋 **Copy HTML** - Copy rendered HTML to clipboard
+### 📤 Export & Sharing
+- **Export to HTML** — Download as a fully styled HTML file
+- **Export to PDF** — Print-quality PDF export
+- **Copy HTML** — Copy rendered HTML to clipboard
+- **Upload** — Open `.md`, `.html`, `.htm`, `.json`, `.txt` files
 
-### UI/UX
-- 🎨 **Premium Design** - Modern, glassmorphism effects
-- 📱 **Responsive** - Split-pane layout
-- 🔤 **Font Size Control** - Adjustable text size
-- ⚡ **Fast Performance** - Optimized rendering with debouncing
+### 🤖 AI Assistance
+- **Convert to Markdown** — Paste any text; AI converts it to clean Markdown
+- **Fix HTML / Fix JSON** — AI repairs broken HTML or JSON
+- Supports **Gemini** and other AI providers
+
+### 🎨 UI / UX
+- **Glassmorphism Design** — Premium 4-tier glass panel system
+- **Dark & Light Themes** — Toggle with full theme persistence
+- **Animated Background Orbs** — Subtle ambient glow effects
+- **Smooth Animations** — Page transitions, fade-ins, bounce-in states
+- **Resizable Panels** — Drag the divider to resize the editor/preview split
+- **Font Size Control** — A− / A+ buttons in the toolbar
+- **Auto-save** — Content persisted to localStorage every 500ms
+- **Status Bar** — Live line, word, and character count
+
+### 🔒 Security
+- All Markdown HTML output sanitized via **DOMPurify** (XSS-safe)
+- HTML in markdown is disabled by default
+- External links open with `rel="noopener noreferrer"`
+
+---
 
 ## 🚀 Quick Start
 
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start the dev server
+npm run dev
+
+# 3. Open in browser
+# → http://localhost:5173
+```
+
 ### Prerequisites
-- Node.js 18+ 
-- npm or yarn
+- Node.js **18+**
+- npm **9+**
 
-### Installation
+---
 
-1. **Clone or navigate to the project:**
-   ```bash
-   cd MdViewer
-   ```
+## 🛠️ Scripts
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+```bash
+npm run dev       # Start development server (HMR)
+npm run build     # Production build
+npm run preview   # Preview production build locally
+npm run lint      # ESLint
+```
 
-3. **Install Tailwind typography plugin:**
-   ```bash
-   npm install -D @tailwindcss/typography
-   ```
-
-4. **Start development server:**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open in browser:**
-   Navigate to `http://localhost:5173/`
+---
 
 ## 📦 Tech Stack
 
-### Frontend Framework
-- **React 19.2** - UI library
-- **Vite 7.2** - Build tool and dev server
+### Core
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `react` | 19.2 | UI framework |
+| `react-dom` | 19.2 | DOM rendering |
+| `react-router-dom` | 7.13 | Client-side routing |
+| `vite` | 7.2 | Build tool & dev server |
 
 ### Editor & Rendering
-- **Monaco Editor** - Code editor component
-- **markdown-it** - Markdown parser
-- **Mermaid** - Diagram rendering
-- **KaTeX** - Math typesetting
+| Package | Purpose |
+|---------|---------|
+| `@monaco-editor/react` | VS Code-grade editor |
+| `markdown-it` | Markdown parser |
+| `markdown-it-task-lists` | Task list support |
+| `markdown-it-katex` | LaTeX math rendering |
+| `katex` | Math typesetting engine |
+| `mermaid` | Diagram rendering |
+| `dompurify` | XSS sanitization |
 
-### Styling
-- **Tailwind CSS 3.4** - Utility-first CSS framework
-- **@tailwindcss/typography** - Prose styling
-- **Custom Design System** - Premium color palette and animations
+### Styling & Export
+| Package | Purpose |
+|---------|---------|
+| `tailwindcss` + `@tailwindcss/typography` | Utility CSS + prose styles |
+| `html2pdf.js` | PDF export |
 
-### Security & Export
-- **DOMPurify** - XSS sanitization
-- **html2pdf.js** - PDF generation
-
-## 🎯 Usage
-
-### Basic Editing
-1. Type markdown in the left editor panel
-2. See live preview on the right panel
-3. Content auto-saves to localStorage
-
-### Theme Toggle
-- Click the 🌙/☀️ icon in the toolbar to switch themes
-
-### Font Size
-- Use **A-** and **A+** buttons to adjust text size
-
-### File Operations
-- **Upload**: Click 📁 Upload button or drag & drop .md files
-- **Export HTML**: Click 📄 HTML button
-- **Export PDF**: Click 📑 PDF button
-- **Copy HTML**: Click 📋 Copy button
-
-### Markdown Examples
-
-#### Task Lists
-```markdown
-- [x] Completed task
-- [ ] Pending task
-```
-
-#### Tables
-```markdown
-| Feature | Status |
-|---------|--------|
-| Editor  | ✅     |
-| Preview | ✅     |
-```
-
-#### Math (LaTeX)
-```markdown
-Inline: $E = mc^2$
-
-Block:
-$$
-\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
-$$
-```
-
-#### Mermaid Diagrams
-````markdown
-```mermaid
-graph TD
-    A[Start] --> B{Decision}
-    B -->|Yes| C[Action]
-    B -->|No| D[End]
-```
-````
+---
 
 ## 📁 Project Structure
 
@@ -154,86 +125,102 @@ graph TD
 MdViewer/
 ├── src/
 │   ├── components/
-│   │   ├── Editor.jsx          # Monaco editor wrapper
-│   │   ├── Preview.jsx         # Markdown preview renderer
-│   │   ├── Toolbar.jsx         # Top toolbar with controls
-│   │   └── StatusBar.jsx       # Bottom status bar
+│   │   ├── Editor.jsx          # Monaco editor wrapper + scroll sync
+│   │   ├── Preview.jsx         # Markdown/JSON live preview renderer
+│   │   ├── Toolbar.jsx         # Top toolbar (upload, export, AI, settings)
+│   │   ├── Header.jsx          # App header + navigation tabs
+│   │   ├── StatusBar.jsx       # Bottom bar (lines / words / chars)
+│   │   ├── ResizablePanels.jsx # Draggable split-pane layout
+│   │   ├── AISettings.jsx      # AI provider configuration modal
+│   │   └── Toast.jsx           # Notification toasts
+│   ├── pages/
+│   │   ├── MarkdownPage.jsx    # Markdown editor + preview page
+│   │   ├── HtmlPage.jsx        # HTML editor + iframe preview page
+│   │   └── JsonPage.jsx        # JSON editor + syntax preview page
+│   ├── renderers/
+│   │   ├── markdownRenderer.js # Calls markdown parser
+│   │   ├── htmlRenderer.js     # HTML preview renderer
+│   │   └── jsonRenderer.js     # JSON syntax highlighter
 │   ├── utils/
-│   │   ├── markdownParser.js   # Markdown parsing & sanitization
-│   │   ├── exportUtils.js      # Export functionality
-│   │   └── storageUtils.js     # localStorage operations
-│   ├── App.jsx                 # Main application component
-│   ├── main.jsx                # Entry point
-│   └── index.css               # Global styles & Tailwind
-├── public/                     # Static assets
-├── index.html                  # HTML template
-├── vite.config.js              # Vite configuration
-├── tailwind.config.js          # Tailwind configuration
-├── postcss.config.js           # PostCSS configuration
-└── package.json                # Dependencies
+│   │   ├── markdownParser.js   # markdown-it config, plugins, DOMPurify
+│   │   ├── exportUtils.js      # HTML & PDF export logic
+│   │   ├── storageUtils.js     # localStorage read/write
+│   │   ├── aiStorage.js        # AI key/provider persistence
+│   │   ├── aiService.js        # AI API calls (Gemini etc.)
+│   │   └── defaultContent.js   # Default content for each mode
+│   ├── App.jsx                 # Root component, shared state, routing
+│   ├── main.jsx                # React entry point
+│   └── index.css               # Global styles, design tokens, animations
+├── public/
+│   └── logo.svg
+├── index.html
+├── vite.config.js
+├── tailwind.config.js
+└── package.json
 ```
-
-## 🛠️ Development
-
-### Available Scripts
-
-```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Run linter
-npm run lint
-```
-
-### Build Optimization
-- Code splitting for Monaco Editor, Markdown libraries, and vendor code
-- Lazy loading for Mermaid diagrams
-- Debounced rendering for performance
-
-## 🔒 Security
-
-- **XSS Protection**: All HTML is sanitized with DOMPurify
-- **No Raw HTML**: HTML in markdown is disabled by default
-- **Safe Links**: External links open in new tabs with `noopener noreferrer`
-
-## 🎨 Customization
-
-### Theme Colors
-Edit `tailwind.config.js` to customize the color palette:
-```javascript
-colors: {
-  primary: { /* your colors */ },
-  dark: { /* your colors */ }
-}
-```
-
-### Font Family
-Change fonts in `tailwind.config.js`:
-```javascript
-fontFamily: {
-  sans: ['Your Font', 'system-ui'],
-  mono: ['Your Mono Font', 'monospace'],
-}
-```
-
-## 📝 License
-
-This project is open source and available for personal and commercial use.
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-
-## 📧 Support
-
-For support, please open an issue in the repository.
 
 ---
 
-**Built with ❤️ using React, Vite, and Tailwind CSS**
+## 🎮 Usage Guide
+
+### Markdown Mode
+1. Type Markdown in the left editor — preview updates instantly on the right
+2. Delete all content → ✨ **Start Creating!** placeholder appears
+3. Use the toolbar to upload `.md` files or export to HTML/PDF
+
+### HTML Mode
+1. Write HTML fragments or full documents
+2. Preview renders in a sandboxed `<iframe>`
+3. Use AI **Fix HTML** to repair syntax errors
+
+### JSON Mode
+1. Paste or type JSON
+2. Viewer shows syntax-highlighted output with error detection
+3. Use **Format** (📐) or AI **Fix JSON** to clean up malformed JSON
+
+### Keyboard Shortcuts
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+S` | Auto-save confirmation |
+| `Ctrl+A` | Select all (in editor) |
+
+### AI Setup
+1. Click the ⚙️ settings icon in the toolbar
+2. Enter your **Gemini API key** (or other provider)
+3. Click **Convert / Fix HTML / Fix JSON** to use AI features
+
+---
+
+## 🎨 Customization
+
+### Change Theme Colors
+Edit `tailwind.config.js`:
+```js
+colors: {
+  primary: { 400: '#38bdf8', 500: '#0ea5e9', ... },
+  dark:    { 800: '#1e293b', 900: '#0f172a', ... }
+}
+```
+
+### Change Fonts
+```js
+fontFamily: {
+  sans: ['Inter', 'system-ui'],
+  mono: ['Fira Code', 'monospace'],
+}
+```
+
+### Adjust Animations
+All animation keyframes and utility classes live in `src/index.css` under `@layer utilities`.
+
+---
+
+## 📄 License
+
+MIT — free for personal and commercial use.
+
+---
+
+<div align="center">
+  Built with ❤️ using React · Monaco Editor · Vite · Tailwind CSS
+</div>

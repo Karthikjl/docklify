@@ -236,6 +236,10 @@ function AppContent() {
 
   return (
     <div className={`flex flex-col h-screen ${theme === 'light' ? 'light-theme' : ''} bg-transparent text-slate-900 dark:text-white transition-colors duration-300`}>
+      {/* Floating ambient orbs */}
+      <div className="bg-orb bg-orb-1" />
+      <div className="bg-orb bg-orb-2" />
+      <div className="bg-orb bg-orb-3" />
       <Header />
 
       <Toolbar
