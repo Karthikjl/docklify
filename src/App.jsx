@@ -12,6 +12,7 @@ import JsonPage from './pages/JsonPage';
 // Utils
 import { loadMarkdown, saveMarkdown, loadTheme, saveTheme, loadFontSize, saveFontSize, loadHTMLContent, saveHTMLContent, loadJSONContent, saveJSONContent } from './utils/storageUtils';
 import { loadAIMode, saveAIMode, loadProvider, loadApiKey } from './utils/aiStorage';
+import { DEFAULT_EDITOR_THEME } from './utils/editorThemes';
 import { convertToMarkdown, fixHTML, fixJSON } from './utils/aiService';
 import { exportAsHTML, exportAsPDF, exportHTMLAsPDF, copyHTMLToClipboard } from './utils/exportUtils';
 import { renderMarkdown } from './renderers/markdownRenderer';
@@ -29,6 +30,9 @@ function AppContent() {
   const [theme, setTheme] = useState('light');
   const [fontSize, setFontSize] = useState(16);
   const [scrollSync, setScrollSync] = useState(true);
+  const [editorTheme, setEditorTheme] = useState(
+    () => localStorage.getItem('doclify-editor-theme') || DEFAULT_EDITOR_THEME
+  );
 
   // Content State
   const [markdown, setMarkdown] = useState('');
@@ -51,6 +55,8 @@ function AppContent() {
     setMarkdown(savedMarkdown || DEFAULT_MARKDOWN);
     setHtmlContent(savedHTML || DEFAULT_HTML);
     setJsonContent(savedJSON || DEFAULT_JSON);
+
+
 
     const savedTheme = loadTheme();
     setTheme(savedTheme);
@@ -226,12 +232,17 @@ function AppContent() {
   };
   const toolbarConfig = getToolbarConfig();
 
+  const handleEditorThemeChange = (t) => {
+    setEditorTheme(t);
+    localStorage.setItem('doclify-editor-theme', t);
+  };
+
   // Shared props for pages
   const sharedProps = {
     markdown, setMarkdown,
     htmlContent, setHtmlContent,
     jsonContent, setJsonContent,
-    theme, fontSize, scrollSync
+    theme, fontSize, scrollSync, editorTheme
   };
 
   return (
@@ -240,7 +251,11 @@ function AppContent() {
       <div className="bg-orb bg-orb-1" />
       <div className="bg-orb bg-orb-2" />
       <div className="bg-orb bg-orb-3" />
-      <Header />
+      <Header
+        editorTheme={editorTheme}
+        onEditorThemeChange={handleEditorThemeChange}
+        theme={theme}
+      />
 
       <Toolbar
         onUpload={handleUpload}

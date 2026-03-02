@@ -4,7 +4,7 @@ import Preview from '../components/Preview';
 import ResizablePanels from '../components/ResizablePanels';
 import { renderJSON } from '../renderers/jsonRenderer';
 
-export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize, scrollSync }) {
+export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize, scrollSync, editorTheme }) {
     const [previewContent, setPreviewContent] = useState('');
 
     useEffect(() => {
@@ -44,6 +44,7 @@ export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize,
                             fontSize={fontSize}
                             scrollSync={scrollSync}
                             language="json"
+                            editorTheme={editorTheme}
                         />
                     </div>
                 }

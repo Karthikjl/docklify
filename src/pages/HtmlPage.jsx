@@ -3,7 +3,7 @@ import Preview from '../components/Preview';
 import ResizablePanels from '../components/ResizablePanels';
 import { formatHTML } from '../renderers/htmlRenderer';
 
-export default function HtmlPage({ htmlContent, setHtmlContent, theme, fontSize, scrollSync }) {
+export default function HtmlPage({ htmlContent, setHtmlContent, theme, fontSize, scrollSync, editorTheme }) {
     const handleFormatHTML = () => {
         const formatted = formatHTML(htmlContent);
         setHtmlContent(formatted);
@@ -33,6 +33,7 @@ export default function HtmlPage({ htmlContent, setHtmlContent, theme, fontSize,
                             fontSize={fontSize}
                             scrollSync={scrollSync}
                             language="html"
+                            editorTheme={editorTheme}
                         />
                     </div>
                 }

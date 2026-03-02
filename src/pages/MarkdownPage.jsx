@@ -4,7 +4,7 @@ import Preview from '../components/Preview';
 import ResizablePanels from '../components/ResizablePanels';
 import { renderMarkdown } from '../renderers/markdownRenderer';
 
-export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, scrollSync }) {
+export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, scrollSync, editorTheme }) {
     const previewContent = useMemo(() => renderMarkdown(markdown), [markdown]);
     const isEmpty = !markdown?.trim();
 
@@ -25,6 +25,7 @@ export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, s
                             fontSize={fontSize}
                             scrollSync={scrollSync}
                             language="markdown"
+                            editorTheme={editorTheme}
                         />
                     </div>
                 }

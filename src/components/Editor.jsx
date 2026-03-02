@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
 import MonacoEditor from '@monaco-editor/react';
+import { EDITOR_THEMES } from '../utils/editorThemes';
 
-export default function Editor({ value, onChange, theme, fontSize, scrollSync, language = 'markdown' }) {
+export default function Editor({ value, onChange, theme, fontSize, scrollSync, language = 'markdown', editorTheme = 'vs-dark' }) {
     const editorRef = useRef(null);
+    const monacoRef = useRef(null);
     const scrollSyncRef = useRef(scrollSync);
-    const isSyncingRef = useRef(false); // prevent feedback loops
+    const isSyncingRef = useRef(false);
 
     // Keep scrollSyncRef current whenever prop changes
     useEffect(() => {
@@ -13,6 +15,17 @@ export default function Editor({ value, onChange, theme, fontSize, scrollSync, l
 
     function handleEditorDidMount(editor, monaco) {
         editorRef.current = editor;
+        monacoRef.current = monaco;
+
+        // Register all custom themes once on mount
+        EDITOR_THEMES.forEach(({ id, data }) => {
+            if (data) {
+                try { monaco.editor.defineTheme(id, data); } catch (_) { }
+            }
+        });
+
+        // Apply the initial theme
+        monaco.editor.setTheme(editorTheme);
 
         // Configure editor options
         editor.updateOptions({
@@ -60,6 +73,13 @@ export default function Editor({ value, onChange, theme, fontSize, scrollSync, l
         }
     }, [fontSize]);
 
+    // Apply editor theme when it changes
+    useEffect(() => {
+        if (monacoRef.current) {
+            monacoRef.current.editor.setTheme(editorTheme);
+        }
+    }, [editorTheme]);
+
     // Listen for preview-scroll events and mirror to editor
     // NOTE: We always attach the listener; the ref guards enable/disable sync
     useEffect(() => {
@@ -95,7 +115,7 @@ export default function Editor({ value, onChange, theme, fontSize, scrollSync, l
                 language={language}
                 value={value}
                 onChange={(val) => onChange(!val?.trim() ? '' : val)}
-                theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                theme={editorTheme}
                 onMount={handleEditorDidMount}
                 options={{
                     fontSize: fontSize,
