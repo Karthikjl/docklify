@@ -127,7 +127,7 @@ function ToolBtn({ icon, label, onClick, isLight, tokens, isClear }) {
                     : 'none',
                 transition: 'filter 0.18s ease',
             }}>{icon}</span>
-            {label}
+            <span className="toolbar-btn-label">{label}</span>
         </button>
     );
 }

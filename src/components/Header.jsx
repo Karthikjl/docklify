@@ -1,6 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { EDITOR_THEMES } from '../utils/editorThemes';
+
+function useWindowWidth() {
+    const [w, setW] = useState(() => window.innerWidth);
+    useEffect(() => {
+        const h = () => setW(window.innerWidth);
+        window.addEventListener('resize', h);
+        return () => window.removeEventListener('resize', h);
+    }, []);
+    return w;
+}
 
 const TABS = [
     { path: '/', label: 'Markdown', exact: true },
@@ -11,53 +21,66 @@ const TABS = [
 export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, theme = 'dark' }) {
     const [open, setOpen] = useState(false);
     const [pillStyle, setPillStyle] = useState({ left: 4, width: 0 });
+    const [btnRect, setBtnRect] = useState(null);
     const dropdownRef = useRef(null);
+    const btnRef = useRef(null);
     const tabRefs = useRef([]);
     const location = useLocation();
     const isLight = theme === 'light';
+    const windowWidth = useWindowWidth();
+    const isMobile = windowWidth < 768;
 
-    // Active tab index
     const activeIndex = TABS.findIndex(t =>
         t.exact ? location.pathname === t.path : location.pathname.startsWith(t.path)
     );
     const safeIndex = activeIndex === -1 ? 0 : activeIndex;
 
-    // Measure actual tab element to position pill perfectly
     useEffect(() => {
         const el = tabRefs.current[safeIndex];
         if (el) setPillStyle({ left: el.offsetLeft, width: el.offsetWidth });
     }, [safeIndex]);
 
-    // Close dropdown on outside click
+    // Close dropdown on outside click (mouse + touch)
     useEffect(() => {
         const handler = (e) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setOpen(false);
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)
+                && btnRef.current && !btnRef.current.contains(e.target)) {
+                setOpen(false);
+            }
         };
         document.addEventListener('mousedown', handler);
-        return () => document.removeEventListener('mousedown', handler);
+        document.addEventListener('touchstart', handler, { passive: true });
+        return () => {
+            document.removeEventListener('mousedown', handler);
+            document.removeEventListener('touchstart', handler);
+        };
+    }, []);
+
+    // On mobile: capture button coords for fixed dropdown placement
+    const handleToggle = useCallback(() => {
+        if (btnRef.current) {
+            const r = btnRef.current.getBoundingClientRect();
+            setBtnRect({ top: r.bottom + 6, right: window.innerWidth - r.right });
+        }
+        setOpen(o => !o);
     }, []);
 
     const currentTheme = EDITOR_THEMES.find(t => t.id === editorTheme) || EDITOR_THEMES[1];
 
     // ── Theme tokens ──────────────────────────────────────────────
     const tokens = isLight ? {
-        // Nav container
         navBg: 'rgba(224,231,255,0.55)',
         navBorder: '1px solid rgba(99,102,241,0.2)',
         navShadow: '0 2px 12px rgba(99,102,241,0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
-        // Pill (sliding indicator)
         pillBg: 'rgba(255,255,255,0.97)',
         pillShadow: '0 2px 10px rgba(99,102,241,0.22), 0 0 0 1px rgba(99,102,241,0.2)',
-        // Tab text colours (handled in className below)
         activeText: '#4338ca',
         inactiveText: '#64748b',
-        // Theme button
         btnBg: 'rgba(238,241,255,0.85)',
         btnBorder: '1px solid rgba(99,102,241,0.3)',
         btnColor: '#4338ca',
         btnShadow: '0 2px 10px rgba(99,102,241,0.15), inset 0 1px 0 rgba(255,255,255,0.9)',
         btnHoverShadow: '0 4px 20px rgba(99,102,241,0.35), 0 0 0 2px rgba(99,102,241,0.25)',
-        // Dropdown
         dropBg: 'rgba(255,255,255,0.96)',
         dropBorder: '1px solid rgba(99,102,241,0.2)',
         dropShadow: '0 8px 40px rgba(99,102,241,0.22), 0 2px 8px rgba(0,0,0,0.06)',
@@ -70,23 +93,18 @@ export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, t
         dropHoverBg: 'rgba(99,102,241,0.06)',
         swatchBorder: 'rgba(0,0,0,0.18)',
     } : {
-        // Nav container
         navBg: 'rgba(255,255,255,0.055)',
         navBorder: '1px solid rgba(255,255,255,0.1)',
         navShadow: '0 2px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
-        // Pill
         pillBg: 'rgba(255,255,255,0.14)',
         pillShadow: '0 2px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(99,102,241,0.45), 0 0 16px rgba(99,102,241,0.2)',
-        // Tab text
         activeText: '#a5b4fc',
         inactiveText: 'rgba(148,163,184,0.75)',
-        // Theme button
         btnBg: 'rgba(255,255,255,0.09)',
         btnBorder: '1px solid rgba(255,255,255,0.16)',
         btnColor: 'rgba(226,232,240,0.9)',
         btnShadow: '0 4px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)',
         btnHoverShadow: '0 0 0 2px rgba(99,102,241,0.55), 0 0 24px rgba(99,102,241,0.3), 0 8px 24px rgba(0,0,0,0.4)',
-        // Dropdown
         dropBg: 'rgba(12,16,30,0.9)',
         dropBorder: '1px solid rgba(255,255,255,0.1)',
         dropShadow: '0 8px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.35), 0 0 40px rgba(99,102,241,0.12)',
@@ -102,26 +120,34 @@ export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, t
 
     return (
         <header
-            className="glass-strong border-b border-slate-200/50 dark:border-white/10 px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-4 slide-in-down"
-            style={{ position: 'relative', zIndex: 1000 }}
+            className="glass-strong border-b border-slate-200/50 dark:border-white/10 slide-in-down"
+            style={{
+                position: 'relative', zIndex: 1000,
+                display: 'flex', flexWrap: 'nowrap',
+                alignItems: 'center', justifyContent: 'space-between',
+                padding: isMobile ? '8px 10px' : '12px 24px',
+                gap: isMobile ? '8px' : '16px',
+            }}
         >
             {/* ── Left: Logo + Tab Nav ── */}
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-3" style={{ minWidth: 0, flex: 1 }}>
 
                 {/* Logo */}
-                <div className="flex items-center gap-3 animate-in">
+                <div className="flex items-center gap-2 animate-in" style={{ flexShrink: 0 }}>
                     <img
                         src="/logo.svg" alt="Doclify"
                         fetchPriority="high" width="32" height="32"
                         className="w-8 h-8 logo-spin cursor-pointer"
                         style={{ transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}
                     />
-                    <h1
-                        className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent"
-                        style={{ animation: 'fadeSlideUp 0.4s 0.05s cubic-bezier(0.16,1,0.3,1) both' }}
-                    >
-                        Doclify
-                    </h1>
+                    {!isMobile && (
+                        <h1
+                            className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-500 bg-clip-text text-transparent"
+                            style={{ animation: 'fadeSlideUp 0.4s 0.05s cubic-bezier(0.16,1,0.3,1) both', whiteSpace: 'nowrap' }}
+                        >
+                            Doclify
+                        </h1>
+                    )}
                 </div>
 
                 {/* ── Sliding-pill Nav ── */}
@@ -130,7 +156,7 @@ export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, t
                         position: 'relative',
                         display: 'flex',
                         alignItems: 'center',
-                        padding: '4px',
+                        padding: isMobile ? '3px' : '4px',
                         borderRadius: '12px',
                         background: tokens.navBg,
                         border: tokens.navBorder,
@@ -138,6 +164,7 @@ export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, t
                         backdropFilter: 'blur(20px) saturate(180%)',
                         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
                         animation: 'fadeSlideUp 0.4s 0.1s cubic-bezier(0.16,1,0.3,1) both',
+                        flexShrink: 0,
                     }}
                 >
                     {/* Sliding pill */}
@@ -162,12 +189,12 @@ export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, t
                             key={path} to={path} end={exact}
                             ref={el => { tabRefs.current[i] = el; }}
                             style={{ position: 'relative', zIndex: 1, textDecoration: 'none' }}
-                            className={({ isActive }) =>
-                                `px-5 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 select-none ${isActive ? '' : ''}`
-                            }
                         >
                             {({ isActive }) => (
                                 <span style={{
+                                    display: 'block',
+                                    padding: isMobile ? '5px 8px' : '6px 20px',
+                                    fontSize: isMobile ? '0.8rem' : '0.875rem',
                                     color: isActive ? tokens.activeText : tokens.inactiveText,
                                     textShadow: isActive && !isLight
                                         ? '0 0 12px rgba(139,148,252,0.7), 0 0 24px rgba(99,102,241,0.4)'
@@ -176,6 +203,7 @@ export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, t
                                             : 'none',
                                     transition: 'color 0.2s ease, text-shadow 0.2s ease',
                                     fontWeight: isActive ? 600 : 500,
+                                    whiteSpace: 'nowrap',
                                 }}>
                                     {label}
                                 </span>
@@ -186,30 +214,36 @@ export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, t
             </div>
 
             {/* ── Right: Editor Theme Picker ── */}
-            <div
-                ref={dropdownRef}
-                style={{ position: 'relative', zIndex: 9999, animation: 'fadeSlideUp 0.4s 0.18s cubic-bezier(0.16,1,0.3,1) both' }}
-            >
+            <div style={{ position: 'relative', zIndex: 9999, flexShrink: 0 }}>
                 {/* Trigger button */}
-                <ThemeButton
-                    onClick={() => setOpen(o => !o)}
-                    open={open}
-                    label={currentTheme.label}
-                    tokens={tokens}
-                    isLight={isLight}
-                />
+                <div ref={btnRef}>
+                    <ThemeButton
+                        onClick={handleToggle}
+                        open={open}
+                        label={currentTheme.label}
+                        tokens={tokens}
+                        isLight={isLight}
+                        isMobile={isMobile}
+                    />
+                </div>
 
-                {/* Dropdown */}
+                {/* Dropdown — fixed on mobile to escape all stacking contexts */}
                 {open && (
                     <div
-                        className="absolute right-0 mt-2 w-56 rounded-2xl overflow-hidden scale-in"
+                        ref={dropdownRef}
+                        className="w-56 rounded-2xl overflow-hidden scale-in"
                         style={{
+                            position: isMobile ? 'fixed' : 'absolute',
+                            ...(isMobile && btnRect
+                                ? { top: btnRect.top, right: btnRect.right }
+                                : { top: '100%', right: 0, marginTop: '8px' }
+                            ),
                             background: tokens.dropBg,
                             backdropFilter: 'blur(48px) saturate(200%)',
                             WebkitBackdropFilter: 'blur(48px) saturate(200%)',
                             border: tokens.dropBorder,
                             boxShadow: tokens.dropShadow,
-                            zIndex: 9999,
+                            zIndex: 99999,
                         }}
                     >
                         {/* Header label */}
@@ -253,21 +287,23 @@ export default function Header({ editorTheme = 'vs-dark', onEditorThemeChange, t
 
 /* ── Sub-components ───────────────────────────────────────── */
 
-function ThemeButton({ onClick, open, label, tokens, isLight }) {
+function ThemeButton({ onClick, open, label, tokens, isLight, isMobile }) {
     const [hovered, setHovered] = useState(false);
     const [pressed, setPressed] = useState(false);
 
     return (
         <button
             onClick={onClick}
-            title="Change editor theme"
+            title={`Editor theme: ${label}`}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => { setHovered(false); setPressed(false); }}
             onMouseDown={() => setPressed(true)}
             onMouseUp={() => setPressed(false)}
             style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '7px 14px', borderRadius: '12px',
+                display: 'flex', alignItems: 'center',
+                gap: isMobile ? '4px' : '8px',
+                padding: isMobile ? '7px 10px' : '7px 14px',
+                borderRadius: '12px',
                 border: tokens.btnBorder,
                 background: tokens.btnBg,
                 backdropFilter: 'blur(20px) saturate(180%)',
@@ -279,6 +315,8 @@ function ThemeButton({ onClick, open, label, tokens, isLight }) {
                 transform: pressed ? 'scale(0.96)' : hovered ? 'translateY(-1px)' : 'none',
                 transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                 outline: 'none',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
             }}
         >
             <span style={{
@@ -288,7 +326,7 @@ function ThemeButton({ onClick, open, label, tokens, isLight }) {
                     : 'none',
                 transition: 'filter 0.2s ease',
             }}>🎨</span>
-            <span>{label}</span>
+            {!isMobile && <span>{label}</span>}
             <span style={{
                 display: 'inline-block',
                 transition: 'transform 0.25s cubic-bezier(0.34,1.2,0.64,1)',
@@ -320,7 +358,6 @@ function DropdownItem({ label, swatchColor, isActive, tokens, onClick }) {
                 transition: 'all 0.15s ease',
             }}
         >
-            {/* Colour swatch */}
             <span style={{
                 width: '14px', height: '14px', borderRadius: '50%',
                 background: swatchColor, flexShrink: 0,
@@ -339,4 +376,3 @@ function DropdownItem({ label, swatchColor, isActive, tokens, onClick }) {
         </button>
     );
 }
-

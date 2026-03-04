@@ -10,7 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codemirror/lang-html": "^6.4.11",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-markdown": "^6.5.0",
     "@monaco-editor/react": "^4.7.0",
+    "@uiw/codemirror-themes-all": "^4.25.7",
+    "@uiw/react-codemirror": "^4.25.7",
     "dompurify": "^3.3.1",
     "html2pdf.js": "^0.14.0",
     "katex": "^0.16.27",

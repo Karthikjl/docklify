@@ -1906,3 +1906,112 @@
 .light-theme .suggestion-list li {
   color: rgba(0, 0, 0, 0.7);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile-first media queries
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet (768–1023 px) ─────────────────────────────────── */
+@media (max-width: 1023px) {
+
+  /* Toolbar: allow two-row wrap on tablet */
+  .toolbar-enter {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  /* Resize handle: wider hit area for fat fingers on tablets */
+  .resize-handle-container {
+    width: 16px !important;
+  }
+}
+
+/* ── Mobile (< 768 px) ────────────────────────────────────── */
+@media (max-width: 767px) {
+
+  /* ── Root sizing ── */
+  html {
+    font-size: 14px;
+  }
+
+  /* ── Toolbar: horizontal scroll strip ── */
+  .toolbar-enter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Firefox */
+    gap: 6px !important;
+    padding: 6px 10px !important;
+  }
+
+  .toolbar-enter::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Chrome/Safari */
+
+  /* Button label text: hidden on mobile, show only icon */
+  .toolbar-btn-label {
+    display: none;
+  }
+
+  /* Keep both left and right groups in one row */
+  .toolbar-enter>div {
+    flex-shrink: 0;
+  }
+
+  /* ── Header: compact ── */
+  /* Shorten the app brand text */
+  .header-brand-subtitle {
+    display: none;
+  }
+
+  /* Nav pill: reduce horizontal padding */
+  .header-nav-pill {
+    padding: 3px 4px;
+    gap: 2px;
+  }
+
+  /* Nav tab buttons: tighter */
+  .header-nav-tab {
+    padding: 5px 10px !important;
+    font-size: 0.78rem !important;
+    min-width: unset;
+  }
+
+  /* Theme picker: icon-only on mobile */
+  .theme-picker-label {
+    display: none;
+  }
+
+  /* ── Panel headers: compact ── */
+  .glass-panel>div:first-child {
+    padding: 8px 12px !important;
+  }
+
+  /* ── Status bar: hide on mobile ── */
+  .status-bar {
+    display: none;
+  }
+
+  /* ── ConfirmDialog: full-width on mobile ── */
+  .confirm-panel {
+    width: calc(100vw - 32px) !important;
+    max-width: unset !important;
+    padding: 24px 20px !important;
+  }
+}
+
+/* ── Very small (< 400 px) ────────────────────────────────── */
+@media (max-width: 399px) {
+  html {
+    font-size: 13px;
+  }
+
+  .header-nav-tab {
+    padding: 4px 8px !important;
+    font-size: 0.72rem !important;
+  }
+}

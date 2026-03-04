@@ -12,6 +12,7 @@ export default function HtmlPage({ htmlContent, setHtmlContent, theme, fontSize,
     return (
         <div className="h-full page-enter">
             <ResizablePanels
+                theme={theme}
                 leftPanel={
                     <div className="glass-panel flex flex-col h-full slide-in-left" style={{ position: 'relative', zIndex: 1 }}>
                         <div className="px-5 py-3 border-b border-slate-200/50 dark:border-white/10 flex justify-between items-center">
