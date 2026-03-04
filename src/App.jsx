@@ -5,6 +5,7 @@ import Toolbar from './components/Toolbar';
 import StatusBar from './components/StatusBar';
 import AISettings from './components/AISettings';
 import Toast, { useToast } from './components/Toast';
+import ConfirmDialog from './components/ConfirmDialog';
 // Pages
 import MarkdownPage from './pages/MarkdownPage';
 import HtmlPage from './pages/HtmlPage';
@@ -45,6 +46,7 @@ function AppContent() {
   const [aiApiKey, setAiApiKey] = useState('');
   const [showAISettings, setShowAISettings] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
 
   // Initial Load
   useEffect(() => {
@@ -178,12 +180,16 @@ function AppContent() {
   }, [currentFormat, htmlContent, jsonContent, markdown, toast]);
 
   const handleClear = useCallback(() => {
-    if (confirm('Clear current editor content?')) {
-      if (currentFormat === 'html') setHtmlContent('');
-      else if (currentFormat === 'json') setJsonContent('');
-      else setMarkdown('');
-    }
-  }, [currentFormat]);
+    setShowConfirmClear(true);
+  }, []);
+
+  const handleConfirmClear = useCallback(() => {
+    if (currentFormat === 'html') setHtmlContent('');
+    else if (currentFormat === 'json') setJsonContent('');
+    else setMarkdown('');
+    setShowConfirmClear(false);
+    toast.success('Editor cleared.', 'Cleared');
+  }, [currentFormat, toast]);
 
   // AI Handler (for all formats)
   const handleAiAction = useCallback(async () => {
@@ -292,6 +298,17 @@ function AppContent() {
       />
 
       <Toast toasts={toasts} onRemove={removeToast} />
+
+      <ConfirmDialog
+        isOpen={showConfirmClear}
+        title="Clear editor content?"
+        message="This will erase everything in the editor. This action cannot be undone."
+        confirmLabel="Yes, clear it"
+        cancelLabel="Keep it"
+        variant="danger"
+        onConfirm={handleConfirmClear}
+        onCancel={() => setShowConfirmClear(false)}
+      />
     </div>
   );
 }

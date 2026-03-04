@@ -25,7 +25,7 @@ export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, s
         <div className="h-full page-enter">
             <ResizablePanels
                 leftPanel={
-                    <div className="glass-panel flex flex-col h-full slide-in-left">
+                    <div className="glass-panel flex flex-col h-full slide-in-left" style={{ position: 'relative', zIndex: 1 }}>
                         <div className="px-5 py-3 border-b border-slate-200/50 dark:border-white/10 flex justify-between items-center">
                             <h2 className="text-sm font-semibold text-slate-800 dark:text-white/90 flex items-center gap-2 animate-in">
                                 📝 Markdown Editor
@@ -43,7 +43,7 @@ export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, s
                     </div>
                 }
                 rightPanel={
-                    <div className="glass-panel flex flex-col h-full slide-in-right">
+                    <div className="glass-panel flex flex-col h-full slide-in-right" style={{ position: 'relative', zIndex: 0 }}>
                         <div className="px-5 py-3 border-b border-slate-200/50 dark:border-white/10">
                             <h2 className="text-sm font-semibold text-slate-800 dark:text-white/90 flex items-center gap-2 animate-in">
                                 👁️ Preview
@@ -53,7 +53,7 @@ export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, s
                         {isEmpty ? (
                             <div className="flex-1 flex items-center justify-center p-8">
                                 <div className="text-center max-w-md welcome-bounce">
-                                    <div className="text-6xl mb-4">✨<span className="cursor-blink">|</span></div>
+                                    <div className="text-6xl mb-4">✨</div>
                                     <h2 className="text-2xl font-bold mb-3 text-gray-800 dark:text-gray-100">
                                         Start Creating!
                                     </h2>
@@ -74,5 +74,6 @@ export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, s
                 }
             />
         </div>
+
     );
 }
