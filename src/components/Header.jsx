@@ -112,11 +112,29 @@ function Header({ editorTheme = 'vs-dark', onEditorThemeChange, theme = 'dark' }
                     flexShrink: 0,
                     border: isLight ? '1px solid #e4e4e7' : '1px solid #27272a',
                 }}>
-                    <img
-                        src="/logo.svg"
-                        alt="Docklify Logo"
+                    <svg
+                        viewBox="0 0 100 100"
+                        width="100%"
+                        height="100%"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
                         style={{ width: '100%', height: '100%', display: 'block' }}
-                    />
+                        aria-label="Docklify Logo"
+                        role="img"
+                    >
+                        <rect x="8" y="8" width="84" height="84" rx="20" fill={isLight ? '#18181b' : '#09090b'} />
+                        <rect x="8.5" y="8.5" width="83" height="83" rx="19.5" stroke="#27272a" strokeWidth="1" />
+                        <rect x="28" y="26" width="9" height="48" rx="4.5" fill="#f4f4f5" />
+                        <path
+                            d="M37 30.5 C54 30.5 68 39 68 50 C68 61 54 69.5 37 69.5"
+                            stroke="#f4f4f5"
+                            strokeWidth="9"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                        <line x1="44" y1="46" x2="56" y2="46" stroke="#71717a" strokeWidth="3.5" strokeLinecap="round" />
+                        <line x1="44" y1="54" x2="52" y2="54" stroke="#71717a" strokeWidth="3.5" strokeLinecap="round" />
+                    </svg>
                 </div>
 
                 <span

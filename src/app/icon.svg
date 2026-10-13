@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%" fill="none">
+  <!-- Minimalist dark neutral squircle base -->
+  <rect x="8" y="8" width="84" height="84" rx="20" fill="#09090b"/>
+  <rect x="8.5" y="8.5" width="83" height="83" rx="19.5" stroke="#27272a" stroke-width="1"/>
+
+  <!-- Clean, precise geometric "D" monogram for Docklify -->
+  <!-- Vertical spine -->
+  <rect x="28" y="26" width="9" height="48" rx="4.5" fill="#f4f4f5"/>
+
+  <!-- Smooth geometric D curve -->
+  <path d="M37 30.5 C54 30.5 68 39 68 50 C68 61 54 69.5 37 69.5" stroke="#f4f4f5" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Minimalist document horizontal rule -->
+  <line x1="44" y1="46" x2="56" y2="46" stroke="#71717a" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="44" y1="54" x2="52" y2="54" stroke="#71717a" stroke-width="3.5" stroke-linecap="round"/>
+</svg>
