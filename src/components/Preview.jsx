@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 
@@ -12,11 +14,14 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
         scrollSyncRef.current = scrollSync;
     }, [scrollSync]);
 
-    // Initialize Mermaid
+    const prevContentRef = useRef(null);
+    const scrollRafRef = useRef(null);
+
+    // Initialize Mermaid once per theme change
     useEffect(() => {
         mermaid.initialize({
-            startOnLoad: true,
-            theme: theme === 'dark' ? 'base' : 'base',
+            startOnLoad: false,
+            theme: 'base',
             themeVariables: theme === 'dark' ? {
                 darkMode: true,
                 background: 'transparent',
@@ -26,10 +31,9 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
                 lineColor: '#94a3b8', // slate-400
                 secondaryColor: '#0f172a', // slate-900
                 tertiaryColor: '#1e293b', // slate-800
+                clusterBkg: '#1e293b',
                 mainBkg: '#1e293b', // slate-800
                 nodeBorder: '#38bdf8', // sky-400
-                // Match the label background to the dark background as much as possible
-                // Using a very dark color that blends with the gradient better than gray
                 edgeLabelBackground: '#0f172a', // slate-900
                 fontFamily: 'Poppins, sans-serif',
             } : {
@@ -41,6 +45,7 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
                 lineColor: '#64748b', // slate-500
                 secondaryColor: '#f8fafc', // slate-50
                 tertiaryColor: '#ffffff',
+                clusterBkg: '#ffffff',
                 mainBkg: '#ffffff',
                 nodeBorder: '#0ea5e9',
                 edgeLabelBackground: '#f8fafc', // Match light bg
@@ -92,126 +97,86 @@ ${content}
     useEffect(() => {
         if (language === 'html' || !previewRef.current) return;
 
-        // Clear first, then inject if content exists
-        previewRef.current.innerHTML = '';
-        if (!content) return;
+        // Skip identical DOM updates
+        if (prevContentRef.current === content && content) return;
+        prevContentRef.current = content;
 
-        // Inject the rendered HTML
+        if (!content) {
+            previewRef.current.innerHTML = '';
+            return;
+        }
+
+        // Direct innerHTML assignment avoids double-pass reflow
         previewRef.current.innerHTML = content;
 
-        mermaid.initialize({
-            startOnLoad: false,
-            securityLevel: 'loose',
-            theme: 'base',
-            themeVariables: theme === 'dark'
-                ? {
-                    background: 'transparent',
-                    primaryColor: '#1e293b',
-                    primaryTextColor: '#e2e8f0',
-                    primaryBorderColor: '#38bdf8',
-                    lineColor: '#94a3b8',
-                    secondaryColor: '#0f172a',
-                    tertiaryColor: '#1e293b',
-                    edgeLabelBackground: '#1e293b',
-                    clusterBkg: '#1e293b',
-                    nodeBorder: '#38bdf8',
-                    mainBkg: '#1e293b',
-                    fontFamily: 'Poppins, sans-serif'
-                }
-                : {
-                    background: 'transparent',
-                    primaryColor: '#ffffff',
-                    primaryTextColor: '#0f172a',
-                    primaryBorderColor: '#0ea5e9',
-                    lineColor: '#64748b',
-                    secondaryColor: '#f8fafc',
-                    tertiaryColor: '#ffffff',
-                    edgeLabelBackground: '#ffffff',
-                    clusterBkg: '#ffffff',
-                    nodeBorder: '#0ea5e9',
-                    mainBkg: '#ffffff',
-                    fontFamily: 'Poppins, sans-serif'
-                }
-        });
-        const mermaidCodeBlocks =
-            previewRef.current.querySelectorAll(
+        // Only search and render Mermaid if markdown contains mermaid blocks
+        if (content.includes('mermaid')) {
+            const mermaidCodeBlocks = previewRef.current.querySelectorAll(
                 'pre.mermaid-code > code.language-mermaid'
             );
 
-        mermaidCodeBlocks.forEach((element, index) => {
-            const code = element.textContent?.trim();
-            if (!code) return;
+            mermaidCodeBlocks.forEach((element, index) => {
+                const code = element.textContent?.trim();
+                if (!code) return;
 
-            const container = document.createElement('div');
-            container.className = 'mermaid-container';
+                const container = document.createElement('div');
+                container.className = 'mermaid-container';
 
-            const pre = element.closest('pre');
-            if (!pre) return;
+                const pre = element.closest('pre');
+                if (!pre) return;
 
-            pre.replaceWith(container);
+                pre.replaceWith(container);
 
-            try {
-                // Use deterministic ID instead of Date.now()
-                const id = `mermaid-diagram-${index}`;
-
-                mermaid
-                    .render(id, code)
-                    .then(({ svg }) => {
-                        container.innerHTML = svg;
-
-                        const svgEl = container.querySelector('svg');
-                        if (svgEl) {
-                            // Get Mermaid's computed dimensions
-                            const w = parseFloat(svgEl.getAttribute('width')) || 0;
-                            const h = parseFloat(svgEl.getAttribute('height')) || 0;
-
-                            // Build viewBox from existing or from w/h
-                            let viewBox = svgEl.getAttribute('viewBox');
-                            if (!viewBox && w > 0 && h > 0) {
-                                viewBox = `0 0 ${w} ${h}`;
-                                svgEl.setAttribute('viewBox', viewBox);
-                            }
-
-                            // If viewBox has negative offsets (common in Mermaid),
-                            // parse and use full extent so nothing is cropped
-                            if (viewBox) {
-                                const parts = viewBox.trim().split(/[\s,]+/).map(Number);
-                                if (parts.length === 4) {
-                                    const [vx, vy, vw, vh] = parts;
-                                    // Normalize: start from 0,0, expand width/height to cover any negative offset
-                                    const fullW = vw + Math.max(0, -vx);
-                                    const fullH = vh + Math.max(0, -vy);
-                                    const newVx = Math.min(0, vx);
-                                    const newVy = Math.min(0, vy);
-                                    svgEl.setAttribute('viewBox', `${newVx} ${newVy} ${fullW} ${fullH}`);
+                try {
+                    const id = `mermaid-diagram-${index}-${Date.now()}`;
+                    mermaid
+                        .render(id, code)
+                        .then(({ svg }) => {
+                            container.innerHTML = svg;
+                            const svgEl = container.querySelector('svg');
+                            if (svgEl) {
+                                const w = parseFloat(svgEl.getAttribute('width')) || 0;
+                                const h = parseFloat(svgEl.getAttribute('height')) || 0;
+                                let viewBox = svgEl.getAttribute('viewBox');
+                                if (!viewBox && w > 0 && h > 0) {
+                                    viewBox = `0 0 ${w} ${h}`;
+                                    svgEl.setAttribute('viewBox', viewBox);
                                 }
+                                if (viewBox) {
+                                    const parts = viewBox.trim().split(/[\s,]+/).map(Number);
+                                    if (parts.length === 4) {
+                                        const [vx, vy, vw, vh] = parts;
+                                        const fullW = vw + Math.max(0, -vx);
+                                        const fullH = vh + Math.max(0, -vy);
+                                        const newVx = Math.min(0, vx);
+                                        const newVy = Math.min(0, vy);
+                                        svgEl.setAttribute('viewBox', `${newVx} ${newVy} ${fullW} ${fullH}`);
+                                    }
+                                }
+                                svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                                svgEl.removeAttribute('width');
+                                svgEl.removeAttribute('height');
+                                svgEl.style.cssText = '';
+                                svgEl.style.setProperty('display', 'block', 'important');
+                                svgEl.style.setProperty('width', '100%', 'important');
+                                svgEl.style.setProperty('height', 'auto', 'important');
+                                svgEl.style.setProperty('max-height', '75vh', 'important');
                             }
-
-                            svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-                            svgEl.removeAttribute('width');
-                            svgEl.removeAttribute('height');
-
-                            // Override any Mermaid inline style: fit inside container
-                            svgEl.style.cssText = '';
-                            svgEl.style.setProperty('display', 'block', 'important');
-                            svgEl.style.setProperty('width', '100%', 'important');
-                            svgEl.style.setProperty('height', 'auto', 'important');
-                            svgEl.style.setProperty('max-height', '75vh', 'important');
-                        }
-                    })
-                    .catch((err) => {
-                        console.error('Mermaid render error:', err);
-                        container.innerHTML = `
-                <div class="text-red-500 p-4 border border-red-300 rounded">
-                    <strong>Mermaid Error:</strong>
-                    ${err.message}
-                </div>
-                `;
-                    });
-            } catch (err) {
-                console.error(err);
-            }
-        });
+                        })
+                        .catch((err) => {
+                            console.error('Mermaid render error:', err);
+                            container.innerHTML = `
+                                <div class="text-red-500 p-4 border border-red-300 rounded">
+                                    <strong>Mermaid Error:</strong>
+                                    ${err.message}
+                                </div>
+                            `;
+                        });
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+        }
 
         // Make task list checkboxes interactive (read-only)
         const checkboxes = previewRef.current.querySelectorAll('input[type="checkbox"]');
@@ -242,22 +207,34 @@ ${content}
 
         window.addEventListener('editor-scroll', handleEditorScroll);
         return () => window.removeEventListener('editor-scroll', handleEditorScroll);
-    }, []); // mount/unmount only
+    }, []);
 
-    // Dispatch scroll events to editor when user scrolls preview
+    // Dispatch scroll events to editor throttled by requestAnimationFrame
     const handleScroll = () => {
         if (!scrollSyncRef.current || !containerRef.current) return;
-        if (isSyncingRef.current) return; // ignore programmatic scrolls
+        if (isSyncingRef.current) return;
 
-        const maxScroll = containerRef.current.scrollHeight - containerRef.current.clientHeight;
-        if (maxScroll <= 0) return;
+        if (scrollRafRef.current) return;
+        scrollRafRef.current = requestAnimationFrame(() => {
+            scrollRafRef.current = null;
+            if (!containerRef.current) return;
 
-        const scrollPercentage = containerRef.current.scrollTop / maxScroll;
+            const maxScroll = containerRef.current.scrollHeight - containerRef.current.clientHeight;
+            if (maxScroll <= 0) return;
 
-        window.dispatchEvent(new CustomEvent('preview-scroll', {
-            detail: { scrollPercentage }
-        }));
+            const scrollPercentage = containerRef.current.scrollTop / maxScroll;
+
+            window.dispatchEvent(new CustomEvent('preview-scroll', {
+                detail: { scrollPercentage }
+            }));
+        });
     };
+
+    useEffect(() => {
+        return () => {
+            if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+        };
+    }, []);
 
     // If HTML, render in iframe with srcdoc
     if (language === 'html') {

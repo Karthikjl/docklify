@@ -4,11 +4,14 @@ const STORAGE_KEYS = {
     FONT_SIZE: 'markdown-viewer-font-size',
 };
 
+const isBrowser = typeof window !== 'undefined';
+
 /**
  * Save markdown content to localStorage
  * @param {string} content - Markdown content
  */
 export function saveMarkdown(content) {
+    if (!isBrowser) return;
     try {
         localStorage.setItem(STORAGE_KEYS.MARKDOWN, content);
     } catch (error) {
@@ -21,6 +24,7 @@ export function saveMarkdown(content) {
  * @returns {string} - Saved markdown content
  */
 export function loadMarkdown() {
+    if (!isBrowser) return getDefaultMarkdown();
     try {
         return localStorage.getItem(STORAGE_KEYS.MARKDOWN) || getDefaultMarkdown();
     } catch (error) {
@@ -34,6 +38,7 @@ export function loadMarkdown() {
  * @param {string} theme - 'light' or 'dark'
  */
 export function saveTheme(theme) {
+    if (!isBrowser) return;
     try {
         localStorage.setItem(STORAGE_KEYS.THEME, theme);
     } catch (error) {
@@ -46,6 +51,7 @@ export function saveTheme(theme) {
  * @returns {string} - Saved theme
  */
 export function loadTheme() {
+    if (!isBrowser) return 'light';
     try {
         const saved = localStorage.getItem(STORAGE_KEYS.THEME);
         if (saved) return saved;
@@ -66,6 +72,7 @@ export function loadTheme() {
  * @param {number} size - Font size
  */
 export function saveFontSize(size) {
+    if (!isBrowser) return;
     try {
         localStorage.setItem(STORAGE_KEYS.FONT_SIZE, size.toString());
     } catch (error) {
@@ -77,6 +84,7 @@ export function saveFontSize(size) {
 const HTML_CONTENT_KEY = 'doclify_html_content';
 
 export function loadHTMLContent() {
+    if (!isBrowser) return null;
     try {
         return localStorage.getItem(HTML_CONTENT_KEY);
     } catch (error) {
@@ -86,6 +94,7 @@ export function loadHTMLContent() {
 }
 
 export function saveHTMLContent(content) {
+    if (!isBrowser) return;
     try {
         localStorage.setItem(HTML_CONTENT_KEY, content);
     } catch (error) {
@@ -97,6 +106,7 @@ export function saveHTMLContent(content) {
 const JSON_CONTENT_KEY = 'doclify_json_content';
 
 export function loadJSONContent() {
+    if (!isBrowser) return null;
     try {
         return localStorage.getItem(JSON_CONTENT_KEY);
     } catch (error) {
@@ -106,6 +116,7 @@ export function loadJSONContent() {
 }
 
 export function saveJSONContent(content) {
+    if (!isBrowser) return;
     try {
         localStorage.setItem(JSON_CONTENT_KEY, content);
     } catch (error) {
@@ -118,6 +129,7 @@ export function saveJSONContent(content) {
  * @returns {number} - Saved font size
  */
 export function loadFontSize() {
+    if (!isBrowser) return 16;
     try {
         const saved = localStorage.getItem(STORAGE_KEYS.FONT_SIZE);
         return saved ? parseInt(saved, 10) : 16;
@@ -131,10 +143,13 @@ export function loadFontSize() {
  * Clear all saved data
  */
 export function clearStorage() {
+    if (!isBrowser) return;
     try {
         Object.values(STORAGE_KEYS).forEach(key => {
             localStorage.removeItem(key);
         });
+        localStorage.removeItem(HTML_CONTENT_KEY);
+        localStorage.removeItem(JSON_CONTENT_KEY);
     } catch (error) {
         console.error('Error clearing storage:', error);
     }

@@ -1,229 +1,188 @@
-# 🚀 Doclify
+# Docklify
 
-> A premium, multi-format document viewer and editor with live preview — built with React, Monaco Editor, and Vite.
+> A fast, minimalist multi-format document viewer and editor with live preview — built with Next.js 16 (App Router), React 19, Monaco Editor, and Tailwind CSS.
 
+![Next.js](https://img.shields.io/badge/Next.js-16.4-black?logo=next.js&logoColor=white&style=flat-square)
 ![React](https://img.shields.io/badge/React-19.2-61dafb?logo=react&logoColor=white&style=flat-square)
-![Vite](https://img.shields.io/badge/Vite-7.2-646cff?logo=vite&logoColor=white&style=flat-square)
 ![Tailwind](https://img.shields.io/badge/Tailwind-3.4-38bdf8?logo=tailwindcss&logoColor=white&style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ---
 
-## ✨ Features
+## Features
 
-### 📝 Three Editor Modes
+### Multi-Format Editor Modes
 | Mode | Description |
-|------|-------------|
-| **Markdown** | Full GFM rendering with live preview |
-| **HTML** | Write & preview HTML in an isolated iframe |
-| **JSON** | Validate, format & view JSON with syntax highlighting |
+|---|---|
+| **Markdown** | Full GitHub-Flavored Markdown (GFM) with live rendered preview |
+| **HTML** | Write and preview HTML in a sandboxed, isolated container |
+| **JSON** | Validate, inspect, and pretty-print JSON structures |
 
-### 🎯 Markdown Capabilities
-- **Mermaid Diagrams** — Flowcharts, sequence diagrams, class diagrams, Gantt, and more
-- **KaTeX Math** — Inline (`$...$`) and block (`$$...$$`) LaTeX formulas
-- **Task Lists** — Interactive checkboxes
-- **Tables** — Full GitHub-flavored table support
+### Markdown Capabilities
+- **Mermaid Diagrams** — Flowcharts, sequence diagrams, class diagrams, state diagrams, and Gantt charts
+- **KaTeX Math** — Fast inline (`$...$`) and block (`$$...$$`) LaTeX typesetting
+- **Task Lists** — Interactive GitHub task list checkboxes
+- **Tables** — Formatted tabular data with responsive borders
 - **Syntax Highlighting** — Language-labeled code blocks
-- **Auto-linking** — URLs and custom protocols (including `magnet:`)
-- **Blockquotes, footnotes, smart typography**
+- **Automatic Link Detection** — Standard and custom URI schemes (including `magnet:`)
+- **Blockquotes, Footnotes & Typography**
 
-### 🖥️ Editor
-- **Monaco Editor** (same engine as VS Code) with full markdown, HTML, and JSON language support
-- Line numbers, word wrap, smooth scrolling, Fira Code font
-- **Scroll Sync** — Editor and preview scroll together
+### Monaco Editor Engine
+- **VS Code Engine** (`@monaco-editor/react`) with syntax highlighting for Markdown, HTML, and JSON
+- Line numbers, smart word wrap, and Fira Code monospace font
+- **Bidirectional Scroll Sync** — Keep editor and preview synchronized as you scroll
+- **Mobile Touch Fallback** — Optimized textarea editor for mobile touch browsers
 
-### 📤 Export & Sharing
-- **Export to HTML** — Download as a fully styled HTML file
-- **Export to PDF** — Print-quality PDF export
-- **Copy HTML** — Copy rendered HTML to clipboard
-- **Upload** — Open `.md`, `.html`, `.htm`, `.json`, `.txt` files
+### Export & Sharing
+- **Export to HTML** — Download self-contained, fully styled HTML documents
+- **Export to PDF** — High-resolution print-quality PDF export
+- **Copy Content** — One-click clipboard copy
+- **File Upload** — Open and edit `.md`, `.html`, `.htm`, `.json`, `.txt` files directly
 
-### 🤖 AI Assistance
-- **Convert to Markdown** — Paste any text; AI converts it to clean Markdown
-- **Fix HTML / Fix JSON** — AI repairs broken HTML or JSON
-- Supports **Gemini** and other AI providers
+### AI Assistance (Gemini & OpenAI)
+- **Convert to Markdown** — Transform unstructured plain text into formatted Markdown
+- **Fix Syntax** — AI repairs broken HTML tags and invalid JSON syntax
+- **Zero-Leak Client Storage** — API keys are stored strictly in your browser's `localStorage` and never sent to third-party intermediary servers
 
-### 🎨 UI / UX
-- **Glassmorphism Design** — Premium 4-tier glass panel system
-- **Dark & Light Themes** — Toggle with full theme persistence
-- **Editor Theme Picker** — 7 built-in Monaco editor themes (VS Dark, VS Light, Monokai, Dracula, One Dark, Night Owl, Solarized Dark, GitHub Light) with live preview and localStorage persistence
-- **Smooth Sliding Tab** — Header tabs animate with a physics-spring pill instead of a flicker
-- **Animated Background Orbs** — Subtle ambient glow effects
-- **Smooth Animations** — Page transitions, fade-ins, bounce-in states
-- **Resizable Panels** — Drag the divider to resize the editor/preview split
-- **Font Size Control** — A− / A+ buttons in the toolbar
-- **Auto-save** — Content persisted to localStorage every 500ms
-- **Status Bar** — Live line, word, and character count
+### Minimalist Monochrome Design
+- **Architectural Minimalism** — Flat neutral zinc surfaces, 1px hairline borders (`border-zinc-200 dark:border-zinc-800`), and zero visual noise
+- **Circular Theme Transition** — Cinematic circular reveal expanding from the theme icon across the viewport
+- **Monochrome SVG Icons** — Clean stroke-based vector icons (no OS emoji clutter)
+- **7 Built-in Monaco Themes** — VS Dark, VS Light, Monokai, Dracula, One Dark, Night Owl, Solarized Dark, GitHub Light
+- **Draggable Split Panels** — Resizable dual-panel workspace with mobile tab switching
+- **Quiet Status Bar** — Live line, word, and character counts with auto-save indicator
 
-### 🔒 Security
-- All Markdown HTML output sanitized via **DOMPurify** (XSS-safe)
-- HTML in markdown is disabled by default
-- External links open with `rel="noopener noreferrer"`
+### Security
+- All rendered output is sanitized via **DOMPurify** (XSS protection)
+- HTML execution in Markdown mode is disabled by default
+- Sandboxed iframe container for HTML preview
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Install dependencies
 npm install
 
-# 2. Start the dev server
+# 2. Start development server (Turbopack)
 npm run dev
 
 # 3. Open in browser
-# → http://localhost:5173
+# → http://localhost:3000
 ```
 
 ### Prerequisites
-- Node.js **18+**
+- Node.js **18.17+** (Node.js 20+ recommended)
 - npm **9+**
 
 ---
 
-## 🛠️ Scripts
+## Available Scripts
 
 ```bash
-npm run dev       # Start development server (HMR)
-npm run build     # Production build
-npm run preview   # Preview production build locally
-npm run lint      # ESLint
+npm run dev      # Start development server with Turbopack (http://localhost:3000)
+npm run build    # Build optimized production bundle
+npm run start    # Start production server
+npm run lint     # Run ESLint validation
 ```
 
 ---
 
-## 📦 Tech Stack
+## Tech Stack
 
-### Core
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `react` | 19.2 | UI framework |
-| `react-dom` | 19.2 | DOM rendering |
-| `react-router-dom` | 7.13 | Client-side routing |
-| `vite` | 7.2 | Build tool & dev server |
-
-### Editor & Rendering
-| Package | Purpose |
-|---------|---------|
-| `@monaco-editor/react` | VS Code-grade editor |
-| `markdown-it` | Markdown parser |
-| `markdown-it-task-lists` | Task list support |
-| `markdown-it-katex` | LaTeX math rendering |
-| `katex` | Math typesetting engine |
-| `mermaid` | Diagram rendering |
-| `dompurify` | XSS sanitization |
-
-### Styling & Export
-| Package | Purpose |
-|---------|---------|
-| `tailwindcss` + `@tailwindcss/typography` | Utility CSS + prose styles |
-| `html2pdf.js` | PDF export |
+| Technology | Version | Purpose |
+|---|---|---|
+| `next` | 16.4.0 | App Router framework with Turbopack |
+| `react` | 19.2.0 | UI library |
+| `@monaco-editor/react` | 4.7.0 | VS Code-powered code editor |
+| `markdown-it` | 14.1.0 | Fast, extensible Markdown parser |
+| `katex` | 0.16.27 | TeX math rendering engine |
+| `mermaid` | 11.12.2 | Diagram and flowchart generator |
+| `dompurify` | 3.3.1 | Client-side XSS sanitizer |
+| `tailwindcss` | 3.4.19 | Utility-first styling system |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-MdViewer/
-├── src/
-│   ├── components/
-│   │   ├── Editor.jsx          # Monaco editor wrapper + scroll sync
-│   │   ├── Preview.jsx         # Markdown/JSON live preview renderer
-│   │   ├── Toolbar.jsx         # Top toolbar (upload, export, AI, settings)
-│   │   ├── Header.jsx          # App header + navigation tabs
-│   │   ├── StatusBar.jsx       # Bottom bar (lines / words / chars)
-│   │   ├── ResizablePanels.jsx # Draggable split-pane layout
-│   │   ├── AISettings.jsx      # AI provider configuration modal
-│   │   └── Toast.jsx           # Notification toasts
-│   ├── pages/
-│   │   ├── MarkdownPage.jsx    # Markdown editor + preview page
-│   │   ├── HtmlPage.jsx        # HTML editor + iframe preview page
-│   │   └── JsonPage.jsx        # JSON editor + syntax preview page
-│   ├── renderers/
-│   │   ├── markdownRenderer.js # Calls markdown parser
-│   │   ├── htmlRenderer.js     # HTML preview renderer
-│   │   └── jsonRenderer.js     # JSON syntax highlighter
-│   ├── utils/
-│   │   ├── markdownParser.js   # markdown-it config, plugins, DOMPurify
-│   │   ├── exportUtils.js      # HTML & PDF export logic
-│   │   ├── storageUtils.js     # localStorage read/write
-│   │   ├── editorThemes.js     # Monaco editor theme definitions (Monokai, Dracula, etc.)
-│   │   ├── aiStorage.js        # AI key/provider persistence
-│   │   ├── aiService.js        # AI API calls (Gemini etc.)
-│   │   └── defaultContent.js   # Default content for each mode
-│   ├── App.jsx                 # Root component, shared state, routing
-│   ├── main.jsx                # React entry point
-│   └── index.css               # Global styles, design tokens, animations
+Markdown-Viewer/
 ├── public/
-│   └── logo.svg
-├── index.html
-├── vite.config.js
-├── tailwind.config.js
-└── package.json
+│   └── logo.svg                 # Monochrome geometric brand monogram
+├── src/
+│   ├── app/                     # Next.js App Router
+│   │   ├── layout.jsx           # Root layout with font and metadata
+│   │   ├── page.jsx             # Markdown editor route (/)
+│   │   ├── html/page.jsx        # HTML editor route (/html)
+│   │   ├── json/page.jsx        # JSON editor route (/json)
+│   │   └── not-found.jsx        # 404 handler
+│   ├── components/
+│   │   ├── AppShell.jsx         # Main layout wrapper
+│   │   ├── Header.jsx           # Nav tabs, brand logo, theme picker
+│   │   ├── Toolbar.jsx          # Actions (upload, export, AI, theme toggle)
+│   │   ├── ToolbarButtons.jsx   # Minimalist action button components
+│   │   ├── Icons.jsx            # Custom monochrome vector SVG icons
+│   │   ├── Editor.jsx           # Monaco editor wrapper + scroll sync
+│   │   ├── MobileEditor.jsx     # Mobile textarea fallback
+│   │   ├── Preview.jsx          # Markdown, Mermaid, and HTML iframe preview
+│   │   ├── ResizablePanels.jsx  # Split-pane drag resizer & mobile tabs
+│   │   ├── StatusBar.jsx        # Bottom status bar (lines, words, chars)
+│   │   ├── ThemePicker.jsx      # Monaco theme dropdown
+│   │   ├── AISettings.jsx       # AI configuration modal
+│   │   ├── ConfirmDialog.jsx    # Minimalist clear confirmation dialog
+│   │   └── Toast.jsx            # Hairline notification toasts
+│   ├── context/
+│   │   └── EditorContext.jsx    # Global document and editor state
+│   ├── hooks/
+│   │   ├── useDebounce.js       # Input debounce hook
+│   │   ├── useToast.js          # Toast notification hook
+│   │   └── useWindowWidth.js    # Responsive viewport breakpoint hook
+│   ├── renderers/
+│   │   ├── markdownRenderer.js  # Markdown pipeline (GFM + Mermaid + KaTeX)
+│   │   ├── htmlRenderer.js      # HTML formatter
+│   │   └── jsonRenderer.js      # JSON syntax highlighting
+│   ├── utils/
+│   │   ├── aiService.js         # Gemini / OpenAI API integration
+│   │   ├── aiStorage.js         # LocalStorage persistence for AI credentials
+│   │   ├── defaultContent.js    # Sample content templates
+│   │   ├── editorThemes.js      # Monaco editor themes (Dracula, Monokai, etc.)
+│   │   ├── exportUtils.js       # HTML and PDF file export utilities
+│   │   ├── markdownParser.js    # markdown-it parser configuration
+│   │   └── storageUtils.js      # Document auto-save storage
+│   └── index.css                # Minimalist CSS design system tokens
+├── next.config.mjs              # Next.js configuration
+├── tailwind.config.js           # Tailwind configuration
+└── package.json                 # Project dependencies & scripts
 ```
 
 ---
 
-## 🎮 Usage Guide
+## Usage Guide
 
 ### Markdown Mode
-1. Type Markdown in the left editor — preview updates instantly on the right
-2. Delete all content → ✨ **Start Creating!** placeholder appears
-3. Use the toolbar to upload `.md` files or export to HTML/PDF
+1. Type Markdown on the left — preview updates live on the right.
+2. Embed diagrams using ````mermaid```` code blocks.
+3. Write math equations using `$inline$` or `$$block$$`.
+4. Export to self-contained HTML or print-ready PDF using the toolbar.
 
 ### HTML Mode
-1. Write HTML fragments or full documents
-2. Preview renders in a sandboxed `<iframe>`
-3. Use AI **Fix HTML** to repair syntax errors
+1. Write or paste standard HTML or document fragments.
+2. Preview renders in a secure, sandboxed `<iframe>`.
+3. Click **Format** to beautify your markup, or use AI **Fix HTML** to repair syntax errors.
 
 ### JSON Mode
-1. Paste or type JSON
-2. Viewer shows syntax-highlighted output with error detection
-3. Use **Format** (📐) or AI **Fix JSON** to clean up malformed JSON
-
-### Keyboard Shortcuts
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+S` | Auto-save confirmation |
-| `Ctrl+A` | Select all (in editor) |
+1. Paste or type raw JSON.
+2. Click **Format** to prettify with standard 2-space indentation.
+3. The right panel renders a syntax-highlighted, error-checked tree view.
 
 ### AI Setup
-1. Click the ⚙️ settings icon in the toolbar
-2. Enter your **Gemini API key** (or other provider)
-3. Click **Convert / Fix HTML / Fix JSON** to use AI features
+1. Enable AI Mode via the robot icon in the toolbar.
+2. Click the settings gear icon to configure your API key (**Google Gemini** or **OpenAI**).
+3. Use the contextual AI action button (**Convert**, **Fix HTML**, or **Fix JSON**).
 
 ---
 
-## 🎨 Customization
+## License
 
-### Change Theme Colors
-Edit `tailwind.config.js`:
-```js
-colors: {
-  primary: { 400: '#38bdf8', 500: '#0ea5e9', ... },
-  dark:    { 800: '#1e293b', 900: '#0f172a', ... }
-}
-```
-
-### Change Fonts
-```js
-fontFamily: {
-  sans: ['Inter', 'system-ui'],
-  mono: ['Fira Code', 'monospace'],
-}
-```
-
-### Adjust Animations
-All animation keyframes and utility classes live in `src/index.css` under `@layer utilities`.
-
----
-
-## 📄 License
-
-MIT — free for personal and commercial use.
-
----
-
-<div align="center">
-  Built with ❤️ using React · Monaco Editor · Vite · Tailwind CSS
-</div>
+MIT — Free for personal and commercial use.

@@ -49,7 +49,6 @@ const defaultRender = md.renderer.rules.link_open || function (tokens, idx, opti
 
 md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
     const aIndex = tokens[idx].attrIndex('target');
-    const hrefIndex = tokens[idx].attrIndex('href');
 
     if (aIndex < 0) {
         tokens[idx].attrPush(['target', '_blank']);
@@ -74,27 +73,29 @@ export function parseMarkdown(markdown) {
 
         // Sanitize HTML to prevent XSS attacks
         // Note: mermaid code blocks are just <pre><code> at this stage — SVG is rendered later client-side
-        const clean = DOMPurify.sanitize(html, {
-            ALLOWED_TAGS: [
-                'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-                'p', 'br', 'hr',
-                'strong', 'em', 'u', 's', 'code', 'pre',
-                'a', 'img',
-                'ul', 'ol', 'li',
-                'blockquote',
-                'table', 'thead', 'tbody', 'tr', 'th', 'td',
-                'div', 'span',
-                'input', // For task lists
-            ],
-            ALLOWED_ATTR: [
-                'href', 'target', 'rel',
-                'src', 'alt', 'title',
-                'class', 'id',
-                'type', 'checked', 'disabled',
-                'align', 'colspan', 'rowspan',
-            ],
-            ALLOW_DATA_ATTR: true,
-        });
+        const clean = (typeof DOMPurify?.sanitize === 'function')
+            ? DOMPurify.sanitize(html, {
+                ALLOWED_TAGS: [
+                    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                    'p', 'br', 'hr',
+                    'strong', 'em', 'u', 's', 'code', 'pre',
+                    'a', 'img',
+                    'ul', 'ol', 'li',
+                    'blockquote',
+                    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+                    'div', 'span',
+                    'input', // For task lists
+                ],
+                ALLOWED_ATTR: [
+                    'href', 'target', 'rel',
+                    'src', 'alt', 'title',
+                    'class', 'id',
+                    'type', 'checked', 'disabled',
+                    'align', 'colspan', 'rowspan',
+                ],
+                ALLOW_DATA_ATTR: true,
+            })
+            : html;
 
         return clean;
     } catch (error) {

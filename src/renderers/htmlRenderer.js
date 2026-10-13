@@ -6,6 +6,10 @@ import DOMPurify from 'dompurify';
 export function renderHTML(html) {
     if (!html) return '';
 
+    if (typeof DOMPurify?.sanitize !== 'function') {
+        return html;
+    }
+
     // Sanitize HTML but allow common layout and style tags for preview
     return DOMPurify.sanitize(html, {
         ALLOWED_TAGS: [
@@ -34,7 +38,7 @@ export function renderHTML(html) {
  * Format HTML with pretty indentation
  */
 export function formatHTML(html) {
-    if (!html) return '';
+    if (!html || typeof document === 'undefined') return html || '';
 
     try {
         // Parse HTML

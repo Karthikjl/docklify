@@ -9,11 +9,14 @@ const STORAGE_KEYS = {
     AI_MODE: 'markdown-viewer-ai-mode',
 };
 
+const isBrowser = typeof window !== 'undefined';
+
 /**
  * Save AI provider
  * @param {string} provider - 'gemini' or 'openai'
  */
 export function saveProvider(provider) {
+    if (!isBrowser) return;
     try {
         localStorage.setItem(STORAGE_KEYS.AI_PROVIDER, provider);
     } catch (error) {
@@ -26,6 +29,7 @@ export function saveProvider(provider) {
  * @returns {string} - Saved provider or 'gemini' as default
  */
 export function loadProvider() {
+    if (!isBrowser) return 'gemini';
     try {
         return localStorage.getItem(STORAGE_KEYS.AI_PROVIDER) || 'gemini';
     } catch (error) {
@@ -39,6 +43,7 @@ export function loadProvider() {
  * @param {string} apiKey - API key to save
  */
 export function saveApiKey(apiKey) {
+    if (!isBrowser) return;
     try {
         localStorage.setItem(STORAGE_KEYS.AI_API_KEY, apiKey);
     } catch (error) {
@@ -51,6 +56,7 @@ export function saveApiKey(apiKey) {
  * @returns {string} - Saved API key or empty string
  */
 export function loadApiKey() {
+    if (!isBrowser) return '';
     try {
         return localStorage.getItem(STORAGE_KEYS.AI_API_KEY) || '';
     } catch (error) {
@@ -64,6 +70,7 @@ export function loadApiKey() {
  * @param {boolean} enabled - AI mode enabled state
  */
 export function saveAIMode(enabled) {
+    if (!isBrowser) return;
     try {
         localStorage.setItem(STORAGE_KEYS.AI_MODE, enabled.toString());
     } catch (error) {
@@ -76,6 +83,7 @@ export function saveAIMode(enabled) {
  * @returns {boolean} - Saved AI mode state
  */
 export function loadAIMode() {
+    if (!isBrowser) return false;
     try {
         const saved = localStorage.getItem(STORAGE_KEYS.AI_MODE);
         return saved === 'true';
@@ -89,6 +97,7 @@ export function loadAIMode() {
  * Clear all AI settings
  */
 export function clearAISettings() {
+    if (!isBrowser) return;
     try {
         Object.values(STORAGE_KEYS).forEach(key => {
             localStorage.removeItem(key);

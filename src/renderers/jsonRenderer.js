@@ -23,7 +23,7 @@ function highlightJSON(jsonString) {
         // Null
         .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>')
         // Brackets and braces
-        .replace(/([{}\[\]])/g, '<span class="json-bracket">$1</span>');
+        .replace(/([{}[\]])/g, '<span class="json-bracket">$1</span>');
 }
 
 /**
@@ -106,7 +106,11 @@ export function renderJSON(text) {
  * Escape HTML for safe display
  */
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }

@@ -1,41 +1,43 @@
-import { useState, useEffect } from 'react';
+'use client';
+
+import { useMemo } from 'react';
 import Editor from '../components/Editor';
 import Preview from '../components/Preview';
 import ResizablePanels from '../components/ResizablePanels';
 import { renderJSON } from '../renderers/jsonRenderer';
+import { useDebounce } from '../hooks/useDebounce';
+import { FormatIcon, CodeIcon } from '../components/Icons';
 
 export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize, scrollSync, editorTheme }) {
-    const [previewContent, setPreviewContent] = useState('');
-
-    useEffect(() => {
-        setPreviewContent(renderJSON(jsonContent));
-    }, [jsonContent]);
+    const debouncedJson = useDebounce(jsonContent, 120);
+    const previewContent = useMemo(() => renderJSON(debouncedJson), [debouncedJson]);
 
     const handleFormatJSON = () => {
         try {
             const parsed = JSON.parse(jsonContent);
             setJsonContent(JSON.stringify(parsed, null, 2));
-        } catch (e) {
+        } catch {
             // handled by toast in parent
         }
     };
 
     return (
-        <div className="h-full page-enter">
+        <div className="h-full">
             <ResizablePanels
                 theme={theme}
                 leftPanel={
-                    <div className="glass-panel flex flex-col h-full slide-in-left" style={{ position: 'relative', zIndex: 1 }}>
-                        <div className="px-5 py-3 border-b border-slate-200/50 dark:border-white/10 flex justify-between items-center">
-                            <h2 className="text-sm font-semibold text-slate-800 dark:text-white/90 flex items-center gap-2 animate-in">
-                                🧾 JSON Editor
+                    <div className="flex flex-col h-full bg-white dark:bg-[#09090b] border-r border-zinc-200 dark:border-zinc-800">
+                        <div className="px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-[#0d0d10]">
+                            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                                JSON Editor
                             </h2>
                             <button
                                 onClick={handleFormatJSON}
-                                className="glass-btn text-xs px-3 py-1.5 hover:bg-slate-200/50 dark:hover:bg-white/20 transition-all btn-press hover-lift animate-in-delay-1"
-                                title="Format JSON"
+                                aria-label="Format JSON"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors outline-none"
                             >
-                                📐 Format
+                                <FormatIcon size={12} className="opacity-70" />
+                                Format
                             </button>
                         </div>
                         <Editor
@@ -50,10 +52,10 @@ export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize,
                     </div>
                 }
                 rightPanel={
-                    <div className="glass-panel flex flex-col h-full slide-in-right">
-                        <div className="px-5 py-3 border-b border-slate-200/50 dark:border-white/10">
-                            <h2 className="text-sm font-semibold text-slate-800 dark:text-white/90 flex items-center gap-2 animate-in">
-                                👁️ Pretty Print
+                    <div className="flex flex-col h-full bg-white dark:bg-[#09090b]">
+                        <div className="px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-[#0d0d10]">
+                            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                                Pretty Print
                             </h2>
                         </div>
                         <Preview

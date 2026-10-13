@@ -411,7 +411,7 @@ FIXED JSON OUTPUT (no explanations, just the corrected JSON):`;
         // Validate that the result is actually valid JSON
         try {
             JSON.parse(result);
-        } catch (e) {
+        } catch {
             throw new Error('AI returned invalid JSON. Please check your input.');
         }
 

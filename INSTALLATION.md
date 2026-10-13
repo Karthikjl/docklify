@@ -43,12 +43,11 @@ npm run dev
 - `mermaid` - Diagram rendering
 - `dompurify` - XSS sanitization
 - `html2pdf.js` - PDF export
-- `react` - React framework
+- `next` - Next.js React Framework
+- `react` - React library
 - `react-dom` - React DOM rendering
 
 ### Development Dependencies:
-- `vite` - Build tool
-- `@vitejs/plugin-react` - React plugin for Vite
 - `tailwindcss@^3` - CSS framework (v3 for compatibility)
 - `@tailwindcss/typography` - Typography plugin for prose classes
 - `postcss` - CSS processor
@@ -63,7 +62,7 @@ After installing dependencies:
 npm run dev
 ```
 
-Then open `http://localhost:5173/` in your browser.
+Then open `http://localhost:3000/` in your browser.
 
 ## ✅ Verification
 

@@ -1,114 +1,125 @@
-// Default sample content for each format
+// Default sample content for each format (Minimalist edition)
 
-export const DEFAULT_MARKDOWN = `# Welcome to Doclify! 🚀
+export const DEFAULT_MARKDOWN = `# Welcome to Docklify
 
-**Doclify** is a powerful multi-format document viewer with AI capabilities.
+Docklify is a fast, minimalist multi-format document viewer and editor.
 
-## Quick Start
+## Key Features
 
-### Features
-- ✨ **Markdown** - Full GFM support with Mermaid & KaTeX
-- 🌐 **HTML** - Syntax highlighting + live preview
-- 📋 **JSON** - Pretty printing with validation
-- 🤖 **AI Powered** - Smart formatting (Gemini/OpenAI)
+- **Markdown**: Full GFM support with Mermaid and KaTeX
+- **HTML**: Live rendered preview in isolated environment
+- **JSON**: Clean pretty printing and structure inspection
+- **AI Assist**: Clean formatting and conversion tools
 
-### Example Code
+### Code Sample
 
 \`\`\`javascript
-function greet(name) {
-  return \`Hello, \${name}! Welcome to Doclify\`;
+function formatDocument(content, type) {
+    return {
+        type,
+        timestamp: Date.now(),
+        content: content.trim(),
+    };
 }
 \`\`\`
 
-### Sample Table
+### Status Matrix
 
-| Format | Status | Features |
-|--------|--------|----------|
-| Markdown | ✅ | Mermaid, KaTeX, GFM |
-| HTML | ✅ | Dual Preview |
-| JSON | ✅ | Syntax Highlight |
+| Format | Syntax | Preview | Export |
+|---|---|---|---|
+| Markdown | Supported | Live GFM | PDF / HTML |
+| HTML | Supported | Isolated Iframe | PDF / Raw |
+| JSON | Supported | Tree View | Clean Format |
 
-### Mermaid Diagram
+### Flow Diagram
 
 \`\`\`mermaid
 graph LR
-    A[Edit] --> B[Preview]
-    B --> C[Export]
-    C --> D[PDF/HTML]
+    A[Input] --> B[Parse]
+    B --> C[Validate]
+    C --> D[Render]
 \`\`\`
 
-> **Tip**: Try the AI "Convert" button to format plain text into Markdown!
-
----
-
-**Start editing** to see real-time preview! 💙
+> **Note**: Toggle AI mode in the toolbar to access automated restructuring tools.
 `;
 
 export const DEFAULT_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Doclify HTML Demo</title>
+    <title>Docklify Document</title>
     <style>
         body {
-            font-family: 'Poppins', sans-serif;
-            max-width: 600px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 620px;
             margin: 2rem auto;
-            padding: 2rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 16px;
+            padding: 1.5rem;
+            background: #09090b;
+            color: #f4f4f5;
         }
         .card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
+            background: #121215;
+            border: 1px solid #27272a;
+            border-radius: 8px;
             padding: 1.5rem;
-            margin: 1rem 0;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 1.25rem;
         }
         h1 {
-            font-size: 2rem;
-            margin: 0 0 1rem 0;
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+            letter-spacing: -0.02em;
+        }
+        p {
+            color: #a1a1aa;
+            font-size: 0.875rem;
+            line-height: 1.6;
         }
         .badge {
             display: inline-block;
-            background: white;
-            color: #667eea;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
+            background: #1c1c20;
+            color: #d4d4d8;
+            border: 1px solid #27272a;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin: 0.25rem 0.25rem 0.25rem 0;
+        }
+        ul {
+            color: #a1a1aa;
             font-size: 0.875rem;
-            font-weight: 600;
-            margin: 0.25rem;
+            padding-left: 1.25rem;
+            line-height: 1.7;
         }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1>🎨 HTML Preview</h1>
-        <p>Edit the HTML on the left to see <strong>live updates</strong>!</p>
-        <div>
-            <span class="badge">✨ Beautiful</span>
-            <span class="badge">🚀 Fast</span>
-            <span class="badge">🔒 Secure</span>
+        <h1>HTML Preview</h1>
+        <p>Edit the HTML on the left to inspect real-time rendered updates.</p>
+        <div style="margin-top: 1rem;">
+            <span class="badge">Live Render</span>
+            <span class="badge">Sanitized</span>
+            <span class="badge">Isolated</span>
         </div>
     </div>
     
     <div class="card">
-        <h2>Features</h2>
+        <h2 style="font-size: 1.05rem; font-weight: 600; margin: 0 0 0.5rem 0;">Key Capabilities</h2>
         <ul>
             <li>Syntax highlighting</li>
-            <li>Dual preview mode</li>
-            <li>Sanitized rendering</li>
+            <li>Instant bidirectional preview</li>
+            <li>Clean isolated iframe container</li>
         </ul>
     </div>
 </body>
 </html>`;
 
 export const DEFAULT_JSON = `{
-  "app": "Doclify",
+  "app": "Docklify",
   "version": "1.0.0",
-  "description": "Multi-format document viewer with AI",
+  "description": "Minimalist multi-format document editor",
   "features": {
     "markdown": true,
     "html": true,
@@ -119,25 +130,16 @@ export const DEFAULT_JSON = `{
   "formats": [
     {
       "name": "Markdown",
-      "icon": "📝",
       "capabilities": ["GFM", "Mermaid", "KaTeX", "Tables"]
     },
     {
       "name": "HTML",
-      "icon": "🌐",
       "capabilities": ["SyntaxHighlight", "LivePreview", "Sanitized"]
     },
     {
       "name": "JSON",
-      "icon": "📋",
       "capabilities": ["PrettyPrint", "Validation", "Stats"]
     }
   ],
-  "stats": {
-    "linesOfCode": 5000,
-    "components": 15,
-    "downloads": 1337
-  },
-  "license": "MIT",
-  "openSource": true
+  "license": "MIT"
 }`;

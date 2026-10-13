@@ -1,27 +1,19 @@
+'use client';
+
 import { useEffect } from 'react';
+import { TrashIcon } from './Icons';
 
 /**
- * A beautiful, animated confirmation dialog panel.
- *
- * Props:
- *  isOpen       – boolean, controls visibility
- *  title        – heading text
- *  message      – body text
- *  onConfirm    – called when the user clicks "Confirm"
- *  onCancel     – called when the user dismisses or clicks "Cancel"
- *  confirmLabel – optional button label (default "Confirm")
- *  cancelLabel  – optional button label (default "Cancel")
- *  variant      – 'danger' | 'warning' | 'info' (default 'danger')
+ * Minimalist confirmation dialog panel.
  */
 export default function ConfirmDialog({
     isOpen,
-    title = 'Are you sure?',
-    message = '',
+    title = 'Clear document?',
+    message = 'This will remove all current content. This action cannot be undone.',
     onConfirm,
     onCancel,
-    confirmLabel = 'Confirm',
+    confirmLabel = 'Clear',
     cancelLabel = 'Cancel',
-    variant = 'danger',
 }) {
     // Close on Escape key
     useEffect(() => {
@@ -33,52 +25,54 @@ export default function ConfirmDialog({
 
     if (!isOpen) return null;
 
-    const variantMap = {
-        danger: { icon: '🗑️', accent: '#ef4444', accentRgb: '239 68 68', glow: 'rgba(239,68,68,0.35)', btnClass: 'confirm-btn-danger' },
-        warning: { icon: '⚠️', accent: '#f59e0b', accentRgb: '245 158 11', glow: 'rgba(245,158,11,0.35)', btnClass: 'confirm-btn-warning' },
-        info: { icon: 'ℹ️', accent: '#3b82f6', accentRgb: '59 130 246', glow: 'rgba(59,130,246,0.35)', btnClass: 'confirm-btn-info' },
-    };
-    const { icon, accent, accentRgb, glow, btnClass } = variantMap[variant] ?? variantMap.danger;
-
     return (
-        <>
-            {/* ── Backdrop ── */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
             <div
-                className="confirm-backdrop"
+                className="absolute inset-0 bg-black/50 backdrop-blur-xs"
                 onClick={onCancel}
                 aria-hidden="true"
             />
 
-            {/* ── Panel ── */}
+            {/* Dialog Panel */}
             <div
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="confirm-title"
-                className="confirm-panel"
-                style={{ '--accent': accent, '--glow': glow, '--accent-rgb': accentRgb }}
+                className="relative w-full max-w-sm bg-white dark:bg-[#0e0e11] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl p-5 flex flex-col items-center text-center"
             >
-                {/* Icon badge */}
-                <div className="confirm-icon-badge">
-                    <span className="confirm-icon">{icon}</span>
+                {/* Minimalist icon badge */}
+                <div className="w-10 h-10 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#16161a] flex items-center justify-center text-zinc-600 dark:text-zinc-300 mb-3.5">
+                    <TrashIcon size={16} />
                 </div>
 
                 {/* Text */}
-                <h2 id="confirm-title" className="confirm-title">{title}</h2>
-                {message && <p className="confirm-message">{message}</p>}
-
-                {/* Decorative neon divider */}
-                <div className="confirm-divider" />
+                <h2 id="confirm-title" className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {title}
+                </h2>
+                {message && (
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 leading-relaxed max-w-[280px]">
+                        {message}
+                    </p>
+                )}
 
                 {/* Actions */}
-                <div className="confirm-actions">
-                    <button className="confirm-btn confirm-btn-cancel" onClick={onCancel}>
+                <div className="flex items-center justify-center gap-2 mt-5 w-full">
+                    <button
+                        className="flex-1 px-3 py-1.5 text-xs font-medium rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        onClick={onCancel}
+                    >
                         {cancelLabel}
                     </button>
-                    <button className={`confirm-btn ${btnClass}`} onClick={onConfirm} autoFocus>
+                    <button
+                        className="flex-1 px-3 py-1.5 text-xs font-medium rounded-md bg-red-600 hover:bg-red-700 text-white transition-colors"
+                        onClick={onConfirm}
+                        autoFocus
+                    >
                         {confirmLabel}
                     </button>
                 </div>
             </div>
-        </>
+        </div>
     );
 }

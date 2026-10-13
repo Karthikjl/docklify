@@ -1,171 +1,93 @@
-import { useRef, useEffect, useState } from 'react';
-import { readFileAsText } from '../utils/exportUtils';
+'use client';
 
-// ── Theme token system (mirrors Header.jsx) ──────────────────
+import { useRef, useEffect, useState, useCallback, memo } from 'react';
+import { readFileAsText } from '../utils/exportUtils';
+import { ToolBtn, IconBtn } from './ToolbarButtons';
+import {
+    UploadIcon,
+    HtmlIcon,
+    PdfIcon,
+    CopyIcon,
+    TrashIcon,
+    BotIcon,
+    SettingsIcon,
+    SparklesIcon,
+    SyncIcon,
+    UnsyncIcon,
+    SunIcon,
+    MoonIcon,
+} from './Icons';
+
+// ── Minimalist theme tokens (neutral zinc monochrome) ─────────
 function useTokens(isLight) {
     return isLight ? {
         // Regular action buttons (Upload, HTML, PDF, Copy)
-        btnBg: 'rgba(238,241,255,0.80)',
-        btnBorder: '1px solid rgba(99,102,241,0.25)',
-        btnColor: '#3730a3',
-        btnShadow: '0 2px 8px rgba(99,102,241,0.12), inset 0 1px 0 rgba(255,255,255,0.9)',
-        btnHoverShadow: '0 4px 18px rgba(99,102,241,0.30), 0 0 0 2px rgba(99,102,241,0.2)',
-        btnHoverBg: 'rgba(224,231,255,0.95)',
+        btnBg: '#ffffff',
+        btnBorder: '1px solid #e4e4e7',
+        btnColor: '#27272a',
+        btnHoverBg: '#f4f4f5',
         // Clear button
-        clearBg: 'rgba(255,241,241,0.85)',
-        clearBorder: '1px solid rgba(239,68,68,0.25)',
-        clearColor: '#b91c1c',
-        clearShadow: '0 2px 8px rgba(239,68,68,0.1), inset 0 1px 0 rgba(255,255,255,0.9)',
-        clearHoverShadow: '0 4px 18px rgba(239,68,68,0.30), 0 0 0 2px rgba(239,68,68,0.2)',
-        clearHoverBg: 'rgba(254,226,226,0.95)',
+        clearBg: '#ffffff',
+        clearBorder: '1px solid #fecaca',
+        clearColor: '#dc2626',
+        clearHoverBg: '#fef2f2',
         // Icon buttons (AI, sync, theme)
         iconBg: 'transparent',
         iconBorder: '1px solid transparent',
-        iconColor: '#475569',
-        iconHoverBg: 'rgba(99,102,241,0.09)',
-        iconHoverBorder: '1px solid rgba(99,102,241,0.2)',
-        iconHoverColor: '#4338ca',
-        iconHoverShadow: '0 2px 10px rgba(99,102,241,0.18)',
+        iconColor: '#71717a',
+        iconHoverBg: '#f4f4f5',
+        iconHoverBorder: '1px solid #e4e4e7',
+        iconHoverColor: '#18181b',
         // Active icon (AI on, scroll sync on)
-        iconActiveBg: 'rgba(99,102,241,0.12)',
-        iconActiveBorder: '1px solid rgba(99,102,241,0.3)',
-        iconActiveColor: '#4338ca',
-        iconActiveShadow: '0 0 12px rgba(99,102,241,0.25)',
+        iconActiveBg: '#e4e4e7',
+        iconActiveBorder: '1px solid #d4d4d8',
+        iconActiveColor: '#09090b',
         // Font size label
-        labelColor: '#64748b',
-        sizeColor: '#1e293b',
+        labelColor: '#71717a',
+        sizeColor: '#18181b',
         // Divider
-        divider: 'rgba(99,102,241,0.15)',
+        divider: '#e4e4e7',
         // AI action button
-        aiBg: 'rgba(99,102,241,0.12)',
-        aiBorder: '1px solid rgba(99,102,241,0.3)',
-        aiColor: '#4338ca',
-        aiShadow: '0 2px 10px rgba(99,102,241,0.2)',
-        aiHoverShadow: '0 4px 20px rgba(99,102,241,0.35), 0 0 0 2px rgba(99,102,241,0.25)',
+        aiBg: '#18181b',
+        aiBorder: '1px solid #18181b',
+        aiColor: '#ffffff',
+        aiHoverBg: '#27272a',
     } : {
         // Regular action buttons
-        btnBg: 'rgba(255,255,255,0.07)',
-        btnBorder: '1px solid rgba(255,255,255,0.13)',
-        btnColor: 'rgba(226,232,240,0.9)',
-        btnShadow: '0 2px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
-        btnHoverShadow: '0 0 0 2px rgba(99,102,241,0.5), 0 0 20px rgba(99,102,241,0.22), 0 6px 20px rgba(0,0,0,0.35)',
-        btnHoverBg: 'rgba(255,255,255,0.12)',
+        btnBg: '#121215',
+        btnBorder: '1px solid #27272a',
+        btnColor: '#d4d4d8',
+        btnHoverBg: '#1c1c20',
         // Clear button
-        clearBg: 'rgba(255,255,255,0.07)',
+        clearBg: '#121215',
         clearBorder: '1px solid rgba(239,68,68,0.25)',
         clearColor: '#f87171',
-        clearShadow: '0 2px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
-        clearHoverShadow: '0 0 0 2px rgba(239,68,68,0.5), 0 0 20px rgba(239,68,68,0.25), 0 6px 20px rgba(0,0,0,0.35)',
         clearHoverBg: 'rgba(239,68,68,0.1)',
         // Icon buttons
         iconBg: 'transparent',
         iconBorder: '1px solid transparent',
-        iconColor: 'rgba(148,163,184,0.8)',
-        iconHoverBg: 'rgba(255,255,255,0.07)',
-        iconHoverBorder: '1px solid rgba(255,255,255,0.13)',
-        iconHoverColor: 'rgba(226,232,240,0.95)',
-        iconHoverShadow: '0 0 14px rgba(99,102,241,0.22), 0 2px 8px rgba(0,0,0,0.3)',
+        iconColor: '#a1a1aa',
+        iconHoverBg: '#1c1c20',
+        iconHoverBorder: '1px solid #27272a',
+        iconHoverColor: '#f4f4f5',
         // Active icon
-        iconActiveBg: 'rgba(99,102,241,0.18)',
-        iconActiveBorder: '1px solid rgba(99,102,241,0.45)',
-        iconActiveColor: '#a5b4fc',
-        iconActiveShadow: '0 0 16px rgba(99,102,241,0.35)',
+        iconActiveBg: '#27272a',
+        iconActiveBorder: '1px solid #3f3f46',
+        iconActiveColor: '#ffffff',
         // Font size label
-        labelColor: 'rgba(148,163,184,0.7)',
-        sizeColor: 'rgba(226,232,240,0.9)',
+        labelColor: '#71717a',
+        sizeColor: '#f4f4f5',
         // Divider
-        divider: 'rgba(255,255,255,0.1)',
+        divider: '#27272a',
         // AI action button
-        aiBg: 'rgba(99,102,241,0.18)',
-        aiBorder: '1px solid rgba(99,102,241,0.45)',
-        aiColor: '#a5b4fc',
-        aiShadow: '0 2px 10px rgba(99,102,241,0.25)',
-        aiHoverShadow: '0 0 0 2px rgba(99,102,241,0.55), 0 0 24px rgba(99,102,241,0.3)',
+        aiBg: '#27272a',
+        aiBorder: '1px solid #3f3f46',
+        aiColor: '#f4f4f5',
+        aiHoverBg: '#3f3f46',
     };
 }
 
-// Regular toolbar button (Upload, HTML, PDF, Copy, Clear)
-function ToolBtn({ icon, label, onClick, isLight, tokens, isClear }) {
-    const [hovered, setHovered] = useState(false);
-    const [pressed, setPressed] = useState(false);
-    const bg = isClear ? (hovered ? tokens.clearHoverBg : tokens.clearBg) : (hovered ? tokens.btnHoverBg : tokens.btnBg);
-    const border = isClear ? tokens.clearBorder : tokens.btnBorder;
-    const color = isClear ? tokens.clearColor : tokens.btnColor;
-    const shadow = isClear ? (hovered ? tokens.clearHoverShadow : tokens.clearShadow) : (hovered ? tokens.btnHoverShadow : tokens.btnShadow);
-
-    return (
-        <button
-            onClick={onClick}
-            title={label}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => { setHovered(false); setPressed(false); }}
-            onMouseDown={() => setPressed(true)}
-            onMouseUp={() => setPressed(false)}
-            style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '6px 13px', borderRadius: '11px',
-                border, background: bg, color,
-                fontSize: '0.83rem', fontWeight: 600,
-                cursor: 'pointer',
-                backdropFilter: 'blur(16px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                boxShadow: shadow,
-                transform: pressed ? 'scale(0.95)' : hovered ? 'translateY(-1px)' : 'none',
-                transition: 'all 0.18s cubic-bezier(0.4,0,0.2,1)',
-                outline: 'none',
-                whiteSpace: 'nowrap',
-            }}
-        >
-            <span style={{
-                fontSize: '0.95rem',
-                filter: hovered
-                    ? isClear
-                        ? 'drop-shadow(0 0 6px rgba(239,68,68,0.7))'
-                        : isLight
-                            ? 'drop-shadow(0 0 5px rgba(99,102,241,0.5))'
-                            : 'drop-shadow(0 0 7px rgba(139,148,252,0.7))'
-                    : 'none',
-                transition: 'filter 0.18s ease',
-            }}>{icon}</span>
-            <span className="toolbar-btn-label">{label}</span>
-        </button>
-    );
-}
-
-// Icon-only button (AI toggle, scroll sync, settings, theme)
-function IconBtn({ children, onClick, title, isActive, tokens, isLight }) {
-    const [hovered, setHovered] = useState(false);
-    const [pressed, setPressed] = useState(false);
-    const active = isActive ?? false;
-
-    return (
-        <button
-            onClick={onClick}
-            title={title}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => { setHovered(false); setPressed(false); }}
-            onMouseDown={() => setPressed(true)}
-            onMouseUp={() => setPressed(false)}
-            style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: '36px', height: '36px', borderRadius: '10px',
-                border: active ? tokens.iconActiveBorder : hovered ? tokens.iconHoverBorder : tokens.iconBorder,
-                background: active ? tokens.iconActiveBg : hovered ? tokens.iconHoverBg : tokens.iconBg,
-                color: active ? tokens.iconActiveColor : hovered ? tokens.iconHoverColor : tokens.iconColor,
-                fontSize: '1.1rem',
-                cursor: 'pointer',
-                boxShadow: active ? tokens.iconActiveShadow : hovered ? tokens.iconHoverShadow : 'none',
-                transform: pressed ? 'scale(0.90)' : hovered ? 'translateY(-1px)' : 'none',
-                transition: 'all 0.18s cubic-bezier(0.4,0,0.2,1)',
-                outline: 'none',
-            }}
-        >
-            {children}
-        </button>
-    );
-}
-
-export default function Toolbar({
+function Toolbar({
     onUpload, onExportHTML, onExportPDF, onCopy, onClear,
     theme, onThemeToggle,
     fontSize, onFontSizeChange,
@@ -191,7 +113,8 @@ export default function Toolbar({
     };
 
     const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); };
-    const handleDrop = async (e) => {
+
+    const handleDrop = useCallback(async (e) => {
         e.preventDefault(); e.stopPropagation();
         const file = e.dataTransfer.files?.[0];
         if (!file) return;
@@ -199,7 +122,7 @@ export default function Toolbar({
             const content = await readFileAsText(file);
             onUpload(content);
         } catch (error) { console.error('Error reading file:', error); }
-    };
+    }, [onUpload]);
 
     useEffect(() => {
         document.addEventListener('dragover', handleDragOver);
@@ -208,29 +131,52 @@ export default function Toolbar({
             document.removeEventListener('dragover', handleDragOver);
             document.removeEventListener('drop', handleDrop);
         };
-    }, [uploadAccept]);
+    }, [uploadAccept, handleDrop]);
 
-    const stagger = (i) => ({ animation: `fadeSlideUp 0.4s ${0.05 + i * 0.04}s cubic-bezier(0.16,1,0.3,1) both` });
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
 
     return (
-        <div className="glass-strong border-b border-slate-200/50 dark:border-white/10 px-3 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3 md:gap-4 toolbar-enter">
+        <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#09090b] px-3 md:px-5 py-2.5 flex flex-wrap items-center justify-between gap-3">
 
             {/* ── Left: File action buttons ── */}
-            <div className="flex items-center gap-2">
-                {[
-                    { icon: '📁', label: 'Upload', onClick: () => fileInputRef.current?.click(), isClear: false },
-                    { icon: '📄', label: 'HTML', onClick: onExportHTML, isClear: false },
-                    { icon: '📑', label: 'PDF', onClick: onExportPDF, isClear: false },
-                    { icon: '📋', label: 'Copy', onClick: onCopy, isClear: false },
-                    { icon: '🗑️', label: 'Clear', onClick: onClear, isClear: true },
-                ].map(({ icon, label, onClick, isClear }, i) => (
-                    <div key={label} style={stagger(i)}>
-                        <ToolBtn
-                            icon={icon} label={label} onClick={onClick}
-                            isLight={isLight} tokens={tokens} isClear={isClear}
-                        />
-                    </div>
-                ))}
+            <div className="flex items-center gap-1.5">
+                <ToolBtn
+                    icon={<UploadIcon size={14} />}
+                    label="Upload"
+                    onClick={handleUploadClick}
+                    tokens={tokens}
+                    isClear={false}
+                />
+                <ToolBtn
+                    icon={<HtmlIcon size={14} />}
+                    label="HTML"
+                    onClick={onExportHTML}
+                    tokens={tokens}
+                    isClear={false}
+                />
+                <ToolBtn
+                    icon={<PdfIcon size={14} />}
+                    label="PDF"
+                    onClick={onExportPDF}
+                    tokens={tokens}
+                    isClear={false}
+                />
+                <ToolBtn
+                    icon={<CopyIcon size={14} />}
+                    label="Copy"
+                    onClick={onCopy}
+                    tokens={tokens}
+                    isClear={false}
+                />
+                <ToolBtn
+                    icon={<TrashIcon size={14} />}
+                    label="Clear"
+                    onClick={onClear}
+                    tokens={tokens}
+                    isClear={true}
+                />
 
                 <input
                     ref={fileInputRef}
@@ -242,50 +188,49 @@ export default function Toolbar({
             </div>
 
             {/* ── Right: Settings ── */}
-            <div className="flex items-center gap-3" style={stagger(5)}>
+            <div className="flex items-center gap-2.5">
 
                 {/* Font Size */}
                 <div className="flex items-center gap-1">
-                    <span style={{ fontSize: '0.78rem', fontWeight: 500, color: tokens.labelColor, marginRight: '2px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 500, color: tokens.labelColor, marginRight: '2px' }}>
                         Size:
                     </span>
-                    <IconBtn onClick={() => onFontSizeChange(Math.max(12, fontSize - 2))} title="Decrease font size" tokens={tokens} isLight={isLight}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>A-</span>
+                    <IconBtn onClick={() => onFontSizeChange(Math.max(12, fontSize - 2))} title="Decrease font size" tokens={tokens}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>A-</span>
                     </IconBtn>
                     <span style={{
-                        fontSize: '0.88rem', fontWeight: 700,
+                        fontSize: '0.8125rem', fontWeight: 600,
                         color: tokens.sizeColor,
-                        width: '28px', textAlign: 'center',
-                        animation: 'scaleIn 0.2s cubic-bezier(0.34,1.56,0.64,1) both',
+                        width: '24px', textAlign: 'center',
                     }}>
                         {fontSize}
                     </span>
-                    <IconBtn onClick={() => onFontSizeChange(Math.min(24, fontSize + 2))} title="Increase font size" tokens={tokens} isLight={isLight}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>A+</span>
+                    <IconBtn onClick={() => onFontSizeChange(Math.min(24, fontSize + 2))} title="Increase font size" tokens={tokens}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>A+</span>
                     </IconBtn>
                 </div>
 
                 {/* Divider */}
-                <div style={{ width: '1px', height: '24px', background: tokens.divider, flexShrink: 0 }} />
+                <div style={{ width: '1px', height: '18px', background: tokens.divider, flexShrink: 0 }} />
 
                 {/* AI Controls */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                     <IconBtn
                         onClick={onAIModeToggle}
                         title={aiMode ? 'Disable AI Mode' : 'Enable AI Mode'}
-                        isActive={aiMode} tokens={tokens} isLight={isLight}
+                        isActive={aiMode} tokens={tokens}
                     >
-                        🤖
+                        <BotIcon size={15} />
                     </IconBtn>
 
                     {aiMode && (
-                        <div className="flex items-center gap-2 scale-in">
+                        <div className="flex items-center gap-1.5">
                             <IconBtn
                                 onClick={onAISettings}
                                 title="AI Settings"
-                                tokens={tokens} isLight={isLight}
+                                tokens={tokens}
                             >
-                                ⚙️
+                                <SettingsIcon size={15} />
                             </IconBtn>
 
                             {/* AI Action button */}
@@ -293,7 +238,7 @@ export default function Toolbar({
                                 onClick={onAiAction}
                                 loading={aiLoading}
                                 label={aiActionLabel}
-                                tokens={tokens} isLight={isLight}
+                                tokens={tokens}
                             />
                         </div>
                     )}
@@ -304,9 +249,9 @@ export default function Toolbar({
                     <IconBtn
                         onClick={onScrollSyncToggle}
                         title={scrollSync ? 'Disable scroll sync' : 'Enable scroll sync'}
-                        isActive={scrollSync} tokens={tokens} isLight={isLight}
+                        isActive={scrollSync} tokens={tokens}
                     >
-                        {scrollSync ? '🔗' : '⛓️‍💥'}
+                        {scrollSync ? <SyncIcon size={15} /> : <UnsyncIcon size={15} />}
                     </IconBtn>
                 )}
 
@@ -314,10 +259,16 @@ export default function Toolbar({
                 <IconBtn
                     onClick={onThemeToggle}
                     title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                    tokens={tokens} isLight={isLight}
+                    tokens={tokens}
                 >
-                    <span style={{ display: 'inline-block', transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1)' }}>
-                        {theme === 'dark' ? '☀️' : '🌙'}
+                    <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                        transform: theme === 'dark' ? 'rotate(0deg)' : 'rotate(180deg)',
+                    }}>
+                        {theme === 'dark' ? <SunIcon size={15} /> : <MoonIcon size={15} />}
                     </span>
                 </IconBtn>
             </div>
@@ -325,8 +276,8 @@ export default function Toolbar({
     );
 }
 
-// AI "Convert / Fix" button
-function AIActionBtn({ onClick, loading, label, tokens, isLight }) {
+// Minimalist AI "Convert / Fix" button
+function AIActionBtn({ onClick, loading, label, tokens }) {
     const [hovered, setHovered] = useState(false);
     const [pressed, setPressed] = useState(false);
 
@@ -334,44 +285,45 @@ function AIActionBtn({ onClick, loading, label, tokens, isLight }) {
         <button
             onClick={onClick}
             disabled={loading}
-            title={label}
+            aria-label={label}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => { setHovered(false); setPressed(false); }}
             onMouseDown={() => setPressed(true)}
             onMouseUp={() => setPressed(false)}
             style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '6px 14px', borderRadius: '11px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '5px 11px',
+                borderRadius: '7px',
                 border: tokens.aiBorder,
-                background: tokens.aiBg,
+                background: hovered && !loading ? tokens.aiHoverBg : tokens.aiBg,
                 color: tokens.aiColor,
-                fontSize: '0.83rem', fontWeight: 700,
+                fontSize: '0.8125rem',
+                fontWeight: 600,
                 cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.6 : 1,
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                boxShadow: hovered && !loading ? tokens.aiHoverShadow : tokens.aiShadow,
-                transform: pressed ? 'scale(0.95)' : hovered && !loading ? 'translateY(-1px)' : 'none',
-                transition: 'all 0.18s cubic-bezier(0.4,0,0.2,1)',
+                boxShadow: 'none',
+                transform: pressed ? 'scale(0.97)' : 'none',
+                transition: 'background 0.15s ease, border-color 0.15s ease',
                 outline: 'none',
-                animation: 'scaleIn 0.25s 0.1s cubic-bezier(0.34,1.56,0.64,1) both',
             }}
         >
             {loading ? (
                 <>
-                    <span style={{ display: 'inline-block', animation: 'spin360 1s linear infinite' }}>⚙️</span>
+                    <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>
+                        <SparklesIcon size={13} />
+                    </span>
                     <span>Processing…</span>
                 </>
             ) : (
                 <>
-                    <span style={{
-                        filter: hovered ? (isLight ? 'drop-shadow(0 0 5px rgba(99,102,241,0.6))' : 'drop-shadow(0 0 7px rgba(165,180,252,0.8))') : 'none',
-                        transition: 'filter 0.18s ease',
-                    }}>🪄</span>
-                    {label}
+                    <SparklesIcon size={13} />
+                    <span>{label}</span>
                 </>
             )}
         </button>
     );
 }
 
+export default memo(Toolbar);
