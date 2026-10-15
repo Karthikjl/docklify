@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { EDITOR_THEMES } from '../utils/editorThemes';
 import { PaletteIcon, CheckIcon } from './Icons';
+import Tooltip from './Tooltip';
 
 function ThemeButton({ onClick, open, label, tokens, isMobile }) {
     const [hovered, setHovered] = useState(false);
@@ -129,14 +130,16 @@ export default function ThemePicker({ editorTheme = 'vs-dark', onEditorThemeChan
     return (
         <div style={{ position: 'relative', zIndex: 9999, flexShrink: 0 }}>
             <div ref={btnRef}>
-                <ThemeButton
-                    onClick={handleToggle}
-                    open={open}
-                    label={currentTheme.label}
-                    tokens={tokens}
-                    isLight={isLight}
-                    isMobile={isMobile}
-                />
+                <Tooltip content="Editor syntax theme" position="bottom" align="end" disabled={open}>
+                    <ThemeButton
+                        onClick={handleToggle}
+                        open={open}
+                        label={currentTheme.label}
+                        tokens={tokens}
+                        isLight={isLight}
+                        isMobile={isMobile}
+                    />
+                </Tooltip>
             </div>
 
             {open && (

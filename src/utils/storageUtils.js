@@ -82,6 +82,7 @@ export function saveFontSize(size) {
 
 // HTML Content Storage
 const HTML_CONTENT_KEY = 'doclify_html_content';
+const HTML_TABS_KEY = 'doclify_html_tabs';
 
 export function loadHTMLContent() {
     if (!isBrowser) return null;
@@ -99,6 +100,26 @@ export function saveHTMLContent(content) {
         localStorage.setItem(HTML_CONTENT_KEY, content);
     } catch (error) {
         console.error('Failed to save HTML content:', error);
+    }
+}
+
+export function loadHTMLTabs() {
+    if (!isBrowser) return null;
+    try {
+        const raw = localStorage.getItem(HTML_TABS_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+        console.error('Failed to load HTML tabs:', error);
+        return null;
+    }
+}
+
+export function saveHTMLTabs(tabs) {
+    if (!isBrowser) return;
+    try {
+        localStorage.setItem(HTML_TABS_KEY, JSON.stringify(tabs));
+    } catch (error) {
+        console.error('Failed to save HTML tabs:', error);
     }
 }
 

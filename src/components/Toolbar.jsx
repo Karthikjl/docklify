@@ -3,12 +3,14 @@
 import { useRef, useEffect, useState, useCallback, memo } from 'react';
 import { readFileAsText } from '../utils/exportUtils';
 import { ToolBtn, IconBtn } from './ToolbarButtons';
+import Tooltip from './Tooltip';
 import {
     UploadIcon,
     HtmlIcon,
     PdfIcon,
     CopyIcon,
     TrashIcon,
+    ResetIcon,
     BotIcon,
     SettingsIcon,
     SparklesIcon,
@@ -88,7 +90,7 @@ function useTokens(isLight) {
 }
 
 function Toolbar({
-    onUpload, onExportHTML, onExportPDF, onCopy, onClear,
+    onUpload, onExportHTML, onExportPDF, onCopy, onReset, onClear,
     theme, onThemeToggle,
     fontSize, onFontSizeChange,
     scrollSync, onScrollSyncToggle,
@@ -96,6 +98,8 @@ function Toolbar({
     aiMode, onAIModeToggle, onAISettings,
     aiLoading, onAiAction,
     uploadAccept = '.md',
+    uploadTooltip,
+    uploadMultiple = false,
     aiActionLabel = 'Convert'
 }) {
     const fileInputRef = useRef(null);
@@ -103,12 +107,20 @@ function Toolbar({
     const tokens = useTokens(isLight);
 
     const handleFileUpload = async (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+        const fileList = Array.from(event.target.files || []);
+        if (!fileList.length) return;
         try {
-            const content = await readFileAsText(file);
-            onUpload(content);
-        } catch (error) { console.error('Error reading file:', error); }
+            const files = await Promise.all(
+                fileList.map(async (file) => ({
+                    name: file.name,
+                    extension: file.name.slice(file.name.lastIndexOf('.')).toLowerCase(),
+                    content: await readFileAsText(file)
+                }))
+            );
+            onUpload(files);
+        } catch (error) {
+            console.error('Error reading file(s):', error);
+        }
         event.target.value = '';
     };
 
@@ -116,12 +128,20 @@ function Toolbar({
 
     const handleDrop = useCallback(async (e) => {
         e.preventDefault(); e.stopPropagation();
-        const file = e.dataTransfer.files?.[0];
-        if (!file) return;
+        const fileList = Array.from(e.dataTransfer.files || []);
+        if (!fileList.length) return;
         try {
-            const content = await readFileAsText(file);
-            onUpload(content);
-        } catch (error) { console.error('Error reading file:', error); }
+            const files = await Promise.all(
+                fileList.map(async (file) => ({
+                    name: file.name,
+                    extension: file.name.slice(file.name.lastIndexOf('.')).toLowerCase(),
+                    content: await readFileAsText(file)
+                }))
+            );
+            onUpload(files);
+        } catch (error) {
+            console.error('Error reading dropped file(s):', error);
+        }
     }, [onUpload]);
 
     useEffect(() => {
@@ -148,6 +168,8 @@ function Toolbar({
                     onClick={handleUploadClick}
                     tokens={tokens}
                     isClear={false}
+                    tooltip={uploadTooltip || "Upload file"}
+                    align="start"
                 />
                 <ToolBtn
                     icon={<HtmlIcon size={14} />}
@@ -155,6 +177,7 @@ function Toolbar({
                     onClick={onExportHTML}
                     tokens={tokens}
                     isClear={false}
+                    tooltip="Export document as HTML"
                 />
                 <ToolBtn
                     icon={<PdfIcon size={14} />}
@@ -162,6 +185,7 @@ function Toolbar({
                     onClick={onExportPDF}
                     tokens={tokens}
                     isClear={false}
+                    tooltip="Export document as PDF"
                 />
                 <ToolBtn
                     icon={<CopyIcon size={14} />}
@@ -169,6 +193,15 @@ function Toolbar({
                     onClick={onCopy}
                     tokens={tokens}
                     isClear={false}
+                    tooltip="Copy document to clipboard"
+                />
+                <ToolBtn
+                    icon={<ResetIcon size={14} />}
+                    label="Reset"
+                    onClick={onReset}
+                    tokens={tokens}
+                    isClear={false}
+                    tooltip="Reset to default template"
                 />
                 <ToolBtn
                     icon={<TrashIcon size={14} />}
@@ -176,12 +209,14 @@ function Toolbar({
                     onClick={onClear}
                     tokens={tokens}
                     isClear={true}
+                    tooltip="Clear editor content"
                 />
 
                 <input
                     ref={fileInputRef}
                     type="file"
                     accept={uploadAccept}
+                    multiple={uploadMultiple}
                     onChange={handleFileUpload}
                     className="hidden"
                 />
@@ -234,12 +269,14 @@ function Toolbar({
                             </IconBtn>
 
                             {/* AI Action button */}
-                            <AIActionBtn
-                                onClick={onAiAction}
-                                loading={aiLoading}
-                                label={aiActionLabel}
-                                tokens={tokens}
-                            />
+                            <Tooltip content={`Run AI ${aiActionLabel}`}>
+                                <AIActionBtn
+                                    onClick={onAiAction}
+                                    loading={aiLoading}
+                                    label={aiActionLabel}
+                                    tokens={tokens}
+                                />
+                            </Tooltip>
                         </div>
                     )}
                 </div>
@@ -260,6 +297,7 @@ function Toolbar({
                     onClick={onThemeToggle}
                     title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                     tokens={tokens}
+                    align="end"
                 >
                     <span style={{
                         display: 'inline-flex',

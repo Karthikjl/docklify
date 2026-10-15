@@ -10,10 +10,18 @@ export default function HtmlRoute() {
         <HtmlPage
             htmlContent={editor.htmlContent}
             setHtmlContent={editor.setHtmlContent}
+            htmlCode={editor.htmlCode}
+            setHtmlCode={editor.setHtmlCode}
+            cssCode={editor.cssCode}
+            setCssCode={editor.setCssCode}
+            jsCode={editor.jsCode}
+            setJsCode={editor.setJsCode}
             theme={editor.theme}
             fontSize={editor.fontSize}
             scrollSync={editor.scrollSync}
             editorTheme={editor.editorTheme}
+            activeTab={editor.activeHtmlTab}
+            setActiveTab={editor.setActiveHtmlTab}
         />
     );
 }

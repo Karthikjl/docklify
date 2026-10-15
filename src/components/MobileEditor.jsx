@@ -25,7 +25,7 @@ function getMobileStyle(editorThemeId) {
 /**
  * Mobile textarea fallback (Monaco is not fully supported on mobile touch browsers)
  */
-export default function MobileEditor({ value, onChange, editorTheme, fontSize, language }) {
+export default function MobileEditor({ value, onChange, editorTheme, fontSize, language, readOnly = false }) {
     const s = getMobileStyle(editorTheme);
 
     return (
@@ -48,12 +48,17 @@ export default function MobileEditor({ value, onChange, editorTheme, fontSize, l
                 border: `1px solid ${s.lineNum}44`,
                 pointerEvents: 'none',
             }}>
-                {language}
+                {readOnly ? `${language} (read-only)` : language}
             </div>
 
             <textarea
                 value={value}
-                onChange={(e) => onChange(e.target.value)}
+                onChange={(e) => {
+                    if (!readOnly && onChange) {
+                        onChange(e.target.value);
+                    }
+                }}
+                readOnly={readOnly}
                 spellCheck={false}
                 autoCapitalize="none"
                 autoCorrect="off"
@@ -70,7 +75,7 @@ export default function MobileEditor({ value, onChange, editorTheme, fontSize, l
                     padding: '16px 14px',
                     background: s.bg,
                     color: s.fg,
-                    caretColor: s.caret,
+                    caretColor: readOnly ? 'transparent' : s.caret,
                     tabSize: 4,
                     overflowY: 'auto',
                     overflowX: 'auto',
@@ -94,7 +99,7 @@ export default function MobileEditor({ value, onChange, editorTheme, fontSize, l
                     <strong style={{ color: s.fg }}>{editorTheme}</strong>
                 </span>
                 <span style={{ fontSize: '0.65rem', color: s.lineNum }}>
-                    {language.toUpperCase()}
+                    {readOnly ? 'FORMATTED (READ-ONLY)' : language.toUpperCase()}
                 </span>
             </div>
         </div>

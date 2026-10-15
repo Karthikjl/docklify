@@ -14,6 +14,7 @@ export default function ConfirmDialog({
     onCancel,
     confirmLabel = 'Clear',
     cancelLabel = 'Cancel',
+    icon,
 }) {
     // Close on Escape key
     useEffect(() => {
@@ -43,7 +44,7 @@ export default function ConfirmDialog({
             >
                 {/* Minimalist icon badge */}
                 <div className="w-10 h-10 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-[#16161a] flex items-center justify-center text-zinc-600 dark:text-zinc-300 mb-3.5">
-                    <TrashIcon size={16} />
+                    {icon || <TrashIcon size={16} />}
                 </div>
 
                 {/* Text */}

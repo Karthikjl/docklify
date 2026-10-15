@@ -17,7 +17,17 @@ const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
 import MobileEditor from './MobileEditor';
 
 // ── Main Editor component ─────────────────────────────────────────
-export default function Editor({ value, onChange, fontSize, scrollSync, language = 'markdown', editorTheme = 'vs-dark' }) {
+export default function Editor({
+    value,
+    onChange,
+    fontSize,
+    scrollSync,
+    language = 'markdown',
+    editorTheme = 'vs-dark',
+    readOnly = false,
+    isSecondary = false,
+    path,
+}) {
     const editorRef = useRef(null);
     const monacoRef = useRef(null);
     const scrollSyncRef = useRef(scrollSync);
@@ -45,30 +55,40 @@ export default function Editor({ value, onChange, fontSize, scrollSync, language
         monaco.editor.setTheme(editorTheme);
 
         editor.updateOptions({
+            readOnly,
+            domReadOnly: readOnly,
             fontSize,
             fontFamily: '"Fira Code", monospace',
             lineNumbers: 'on',
-            minimap: { enabled: windowWidth >= 1200 },
+            minimap: { enabled: windowWidth >= 1200 && !readOnly },
             wordWrap: 'on',
             scrollBeyondLastLine: false,
             automaticLayout: true,
             padding: { top: 16, bottom: 16 },
             smoothScrolling: false,
-            cursorBlinking: 'blink',
+            cursorBlinking: readOnly ? 'hidden' : 'blink',
             cursorSmoothCaretAnimation: 'off',
-            renderValidationDecorations: 'editable',
+            renderValidationDecorations: readOnly ? 'off' : 'editable',
             overviewRulerBorder: false,
             hideCursorInOverviewRuler: true,
             maxTokenizationLineLength: 20000,
+            find: {
+                addExtraSpaceOnTop: false,
+            },
         });
 
-        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-            console.log('Auto-save enabled');
-        });
+        if (!readOnly) {
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+                console.log('Auto-save enabled');
+            });
+        }
+
+        const outgoingEvent = isSecondary ? 'preview-scroll' : 'editor-scroll';
 
         let scrollRaf = null;
         editor.onDidScrollChange((e) => {
             if (!scrollSyncRef.current || isSyncingRef.current) return;
+            if (e.scrollTopChanged === false) return;
             if (scrollRaf) return;
             scrollRaf = requestAnimationFrame(() => {
                 scrollRaf = null;
@@ -78,7 +98,7 @@ export default function Editor({ value, onChange, fontSize, scrollSync, language
                 const clientHeight = editorRef.current.getLayoutInfo().height;
                 const maxScroll = scrollHeight - clientHeight;
                 if (maxScroll <= 0) return;
-                window.dispatchEvent(new CustomEvent('editor-scroll', {
+                window.dispatchEvent(new CustomEvent(outgoingEvent, {
                     detail: { scrollPercentage: scrollTop / maxScroll }
                 }));
             });
@@ -94,7 +114,18 @@ export default function Editor({ value, onChange, fontSize, scrollSync, language
     }, [editorTheme]);
 
     useEffect(() => {
-        const handlePreviewScroll = (event) => {
+        if (editorRef.current) {
+            editorRef.current.updateOptions({
+                readOnly,
+                domReadOnly: readOnly,
+                cursorBlinking: readOnly ? 'hidden' : 'blink',
+            });
+        }
+    }, [readOnly]);
+
+    useEffect(() => {
+        const incomingEvent = isSecondary ? 'editor-scroll' : 'preview-scroll';
+        const handleSyncScroll = (event) => {
             if (!scrollSyncRef.current || !editorRef.current) return;
             const { scrollPercentage } = event.detail;
             const scrollHeight = editorRef.current.getScrollHeight();
@@ -109,9 +140,9 @@ export default function Editor({ value, onChange, fontSize, scrollSync, language
                 setTimeout(() => { isSyncingRef.current = false; }, 50);
             }
         };
-        window.addEventListener('preview-scroll', handlePreviewScroll);
-        return () => window.removeEventListener('preview-scroll', handlePreviewScroll);
-    }, []);
+        window.addEventListener(incomingEvent, handleSyncScroll);
+        return () => window.removeEventListener(incomingEvent, handleSyncScroll);
+    }, [isSecondary]);
 
     // ── Mobile / Android: native textarea (Monaco is broken on Android) ──
     if (isMobile) {
@@ -122,21 +153,31 @@ export default function Editor({ value, onChange, fontSize, scrollSync, language
                 editorTheme={editorTheme}
                 fontSize={fontSize}
                 language={language}
+                readOnly={readOnly}
             />
         );
     }
 
+    const isDark = editorTheme !== 'vs';
+
     // ── Desktop: full Monaco editor ──────────────────────────────
     return (
-        <div className="h-full w-full">
+        <div className={`h-full w-full ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
             <MonacoEditor
                 height="100%"
+                path={path}
                 language={language}
                 value={value}
-                onChange={(val) => onChange(!val?.trim() ? '' : val)}
+                onChange={(val) => {
+                    if (!readOnly && onChange) {
+                        onChange(!val?.trim() ? '' : val);
+                    }
+                }}
                 theme={editorTheme}
                 onMount={handleEditorDidMount}
                 options={{
+                    readOnly,
+                    domReadOnly: readOnly,
                     fontSize,
                     fontFamily: '"Fira Code", monospace',
                     lineNumbers: 'on',
@@ -144,10 +185,13 @@ export default function Editor({ value, onChange, fontSize, scrollSync, language
                     wordWrap: 'on',
                     scrollBeyondLastLine: false,
                     automaticLayout: true,
+                    find: {
+                        addExtraSpaceOnTop: false,
+                    },
                 }}
                 loading={
-                    <div className="flex items-center justify-center h-full">
-                        <div className="animate-pulse text-dark-500">Loading editor…</div>
+                    <div className={`flex items-center justify-center h-full ${isDark ? 'bg-[#1e1e1e] text-zinc-500' : 'bg-white text-zinc-400'}`}>
+                        <div className="animate-pulse">Loading editor…</div>
                     </div>
                 }
             />

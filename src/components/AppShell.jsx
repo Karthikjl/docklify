@@ -6,6 +6,7 @@ import StatusBar from './StatusBar';
 import AISettings from './AISettings';
 import Toast from './Toast';
 import ConfirmDialog from './ConfirmDialog';
+import { ResetIcon } from './Icons';
 import { useEditor } from '../context/EditorContext';
 
 export default function AppShell({ children }) {
@@ -30,6 +31,7 @@ export default function AppShell({ children }) {
                 onExportHTML={editor.handleExportHTML}
                 onExportPDF={editor.handleExportPDF}
                 onCopy={editor.handleCopy}
+                onReset={editor.handleReset}
                 onClear={editor.handleClear}
                 theme={editor.theme}
                 onThemeToggle={editor.handleThemeToggle}
@@ -37,13 +39,15 @@ export default function AppShell({ children }) {
                 onFontSizeChange={editor.handleFontSizeChange}
                 scrollSync={editor.scrollSync}
                 onScrollSyncToggle={editor.handleScrollSyncToggle}
-                showScrollSync={editor.currentFormat === 'markdown'}
+                showScrollSync={editor.currentFormat === 'markdown' || editor.currentFormat === 'json'}
                 aiMode={editor.aiMode}
                 onAIModeToggle={editor.handleAIModeToggle}
                 onAISettings={editor.handleOpenAISettings}
                 aiLoading={editor.aiLoading}
                 onAiAction={editor.handleAiAction}
                 uploadAccept={editor.toolbarConfig.accept}
+                uploadTooltip={editor.toolbarConfig.tooltip}
+                uploadMultiple={editor.toolbarConfig.multiple}
                 aiActionLabel={editor.toolbarConfig.label}
             />
 
@@ -74,6 +78,21 @@ export default function AppShell({ children }) {
                 variant="danger"
                 onConfirm={editor.handleConfirmClear}
                 onCancel={() => editor.setShowConfirmClear(false)}
+            />
+
+            <ConfirmDialog
+                isOpen={editor.showConfirmReset}
+                icon={<ResetIcon size={16} />}
+                title="Reset to default template?"
+                message={`This will replace your current ${
+                    editor.currentFormat === 'html'
+                        ? 'HTML, CSS, and Script'
+                        : editor.currentFormat.toUpperCase()
+                } content with the default starter template.`}
+                confirmLabel="Reset Template"
+                cancelLabel="Keep Current"
+                onConfirm={editor.handleConfirmReset}
+                onCancel={() => editor.setShowConfirmReset(false)}
             />
         </div>
     );

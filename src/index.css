@@ -1969,3 +1969,74 @@
     font-size: 0.72rem !important;
   }
 }
+
+/* ── Monaco Editor Find Widget ── */
+/* 1. Prevent hover tooltips from stealing pointer events (fixes flickering) */
+.monaco-editor .monaco-hover,
+.monaco-hover {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+/* 1b. Make find widget button tooltips compact & single-line */
+.monaco-editor .find-widget ~ .workbench-hover-container .monaco-hover.workbench-hover,
+.monaco-hover.workbench-hover {
+  font-size: 11px !important;
+  line-height: 16px !important;
+  padding: 0 !important;
+  border-radius: 5px !important;
+}
+
+.monaco-hover.workbench-hover .hover-contents,
+.monaco-hover.workbench-hover .hover-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 3px 8px !important;
+  white-space: nowrap !important;
+}
+
+.monaco-hover.workbench-hover p,
+.monaco-hover.workbench-hover .markdown-hover p {
+  margin: 0 !important;
+  white-space: nowrap !important;
+  font-size: 11px !important;
+  line-height: 16px !important;
+}
+
+/* Keyboard shortcut shown in tooltip */
+.monaco-hover.workbench-hover .monaco-tokenized-source,
+.monaco-hover.workbench-hover code {
+  font-size: 10px !important;
+  opacity: 0.75 !important;
+  display: inline !important;
+}
+
+/* 2. Visual styling - let Monaco's CSS vars set the background correctly.
+      Monaco already sets --vscode-editorWidget-background:
+        vs-dark → #252526 (dark)
+        vs      → #F3F3F3 (light)
+      We only add rounded corners and a subtle shadow. */
+.monaco-editor .find-widget.visible {
+  border-radius: 0 0 8px 8px !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* 3. Ensure zero ghost shadow when find widget is closed */
+.monaco-editor .find-widget:not(.visible),
+.monaco-editor .find-widget.hidden,
+.monaco-editor .find-widget[aria-hidden="true"] {
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+/* 4. Close button hover */
+.monaco-editor .find-widget .button.codicon-widget-close:hover,
+.monaco-editor .find-widget .button.codicon-close:hover,
+.monaco-editor .find-widget .button[aria-label*="Close"]:hover {
+  background-color: rgba(239, 68, 68, 0.25) !important;
+  color: #f87171 !important;
+  border-radius: 4px !important;
+}

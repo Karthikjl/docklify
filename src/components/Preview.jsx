@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
+import { injectPreviewGuards } from '../renderers/htmlRenderer';
 
 export default function Preview({ content, theme, fontSize, scrollSync, language }) {
     const previewRef = useRef(null);
@@ -56,42 +57,10 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
         });
     }, [theme]);
 
-    // For HTML: Render in isolated iframe
-    // Using srcdoc for better React integration and to avoid document.write issues
+    // For HTML: Render in isolated iframe with navigation and form submission guards
     const getIframeContent = () => {
-        if (language !== 'html') return '';
-
-        const isCompleteDocument = content.trim().toLowerCase().startsWith('<!doctype') ||
-            content.trim().toLowerCase().startsWith('<html');
-
-        if (isCompleteDocument) {
-            return content;
-        } else {
-            return `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        /* Minimal reset */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: white;
-            color: black;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.5;
-        }
-    </style>
-</head>
-<body>
-${content}
-</body>
-</html>`;
-        }
+        if (language !== 'html' || !content) return '';
+        return injectPreviewGuards(content);
     };
 
     useEffect(() => {

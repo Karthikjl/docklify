@@ -13,6 +13,8 @@ import {
     saveFontSize,
     loadHTMLContent,
     saveHTMLContent,
+    loadHTMLTabs,
+    saveHTMLTabs,
     loadJSONContent,
     saveJSONContent
 } from '../utils/storageUtils';
@@ -22,7 +24,8 @@ import { convertToMarkdown, fixHTML, fixJSON } from '../utils/aiService';
 import { exportAsHTML, exportAsPDF, exportHTMLAsPDF, copyHTMLToClipboard } from '../utils/exportUtils';
 import { renderMarkdown } from '../renderers/markdownRenderer';
 import { renderJSON } from '../renderers/jsonRenderer';
-import { DEFAULT_MARKDOWN, DEFAULT_HTML, DEFAULT_JSON } from '../utils/defaultContent';
+import { splitHTML, buildFullHTML } from '../renderers/htmlRenderer';
+import { DEFAULT_MARKDOWN, DEFAULT_HTML, DEFAULT_JSON, DEFAULT_HTML_CODE, DEFAULT_CSS_CODE, DEFAULT_JS_CODE } from '../utils/defaultContent';
 
 const EditorContext = createContext(null);
 
@@ -39,6 +42,10 @@ export function EditorProvider({ children }) {
     // Content State
     const [markdown, setMarkdown] = useState('');
     const [htmlContent, setHtmlContent] = useState('');
+    const [htmlCode, setHtmlCode] = useState('');
+    const [cssCode, setCssCode] = useState('');
+    const [jsCode, setJsCode] = useState('');
+    const [activeHtmlTab, setActiveHtmlTab] = useState('html');
     const [jsonContent, setJsonContent] = useState('');
 
     // AI State
@@ -48,6 +55,7 @@ export function EditorProvider({ children }) {
     const [showAISettings, setShowAISettings] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
     const [showConfirmClear, setShowConfirmClear] = useState(false);
+    const [showConfirmReset, setShowConfirmReset] = useState(false);
 
     // Determine current format based on pathname
     const currentFormat = pathname === '/html' ? 'html' : pathname === '/json' ? 'json' : 'markdown';
@@ -55,12 +63,45 @@ export function EditorProvider({ children }) {
     // Initial load from storage on client mount
     useEffect(() => {
         const savedMarkdown = loadMarkdown();
+        const savedTabs = loadHTMLTabs();
         const savedHTML = loadHTMLContent();
         const savedJSON = loadJSONContent();
 
         setMarkdown(savedMarkdown || DEFAULT_MARKDOWN);
-        setHtmlContent(savedHTML || DEFAULT_HTML);
-        setJsonContent(savedJSON || DEFAULT_JSON);
+
+        let initialHtml = '';
+        let initialCss = '';
+        let initialJs = '';
+
+        const isLegacyTabs = savedTabs && savedTabs.html && (savedTabs.html.includes('sample-form') || savedTabs.html.includes('Web Playground'));
+        const isLegacyJSON = savedJSON && (savedJSON.includes('"version":"1.0.0"') || savedJSON.includes('"capabilities":["Format","Minify"]'));
+
+        if (isLegacyTabs || !savedTabs) {
+            initialHtml = DEFAULT_HTML_CODE;
+            initialCss = DEFAULT_CSS_CODE;
+            initialJs = DEFAULT_JS_CODE;
+        } else if (savedTabs && (savedTabs.html !== undefined || savedTabs.css !== undefined || savedTabs.js !== undefined)) {
+            initialHtml = savedTabs.html || '';
+            initialCss = savedTabs.css || '';
+            initialJs = savedTabs.js || '';
+        } else if (savedHTML) {
+            const split = splitHTML(savedHTML);
+            initialHtml = split.html;
+            initialCss = split.css;
+            initialJs = split.js;
+        } else {
+            initialHtml = DEFAULT_HTML_CODE;
+            initialCss = DEFAULT_CSS_CODE;
+            initialJs = DEFAULT_JS_CODE;
+        }
+
+        setHtmlCode(initialHtml);
+        setCssCode(initialCss);
+        setJsCode(initialJs);
+
+        const combinedHTML = (isLegacyTabs || !savedHTML) ? buildFullHTML(initialHtml, initialCss, initialJs) : savedHTML;
+        setHtmlContent(combinedHTML);
+        setJsonContent((isLegacyJSON || !savedJSON) ? DEFAULT_JSON : savedJSON);
 
         const savedTheme = loadTheme();
         setTheme(savedTheme);
@@ -88,12 +129,17 @@ export function EditorProvider({ children }) {
         return () => clearTimeout(timer);
     }, [markdown]);
 
-    // Auto-save HTML
+    // Sync HTML tabs -> combined htmlContent & auto-save
     useEffect(() => {
-        if (!htmlContent) return;
-        const timer = setTimeout(() => saveHTMLContent(htmlContent), 500);
+        if (htmlCode === '' && cssCode === '' && jsCode === '') return;
+        const combined = buildFullHTML(htmlCode, cssCode, jsCode);
+        setHtmlContent(combined);
+        const timer = setTimeout(() => {
+            saveHTMLTabs({ html: htmlCode, css: cssCode, js: jsCode });
+            saveHTMLContent(combined);
+        }, 500);
         return () => clearTimeout(timer);
-    }, [htmlContent]);
+    }, [htmlCode, cssCode, jsCode]);
 
     // Auto-save JSON
     useEffect(() => {
@@ -182,17 +228,103 @@ export function EditorProvider({ children }) {
         }
     }, []);
 
-    // Upload content
-    const handleUpload = useCallback((content) => {
+    // Upload content with format & extension-aware routing
+    const handleUpload = useCallback((filesOrContent) => {
+        const files = Array.isArray(filesOrContent)
+            ? filesOrContent
+            : typeof filesOrContent === 'object' && filesOrContent !== null && 'content' in filesOrContent
+                ? [filesOrContent]
+                : [{ name: 'upload', extension: '', content: String(filesOrContent || '') }];
+
+        if (!files.length) return;
+
         if (currentFormat === 'html') {
-            setHtmlContent(content);
+            let nextHtml = htmlCode;
+            let nextCss = cssCode;
+            let nextJs = jsCode;
+            const updatedTabs = [];
+            let lastTab = null;
+
+            for (const file of files) {
+                const ext = file.extension?.toLowerCase() || '';
+                const content = file.content || '';
+
+                if (ext === '.css') {
+                    nextCss = content;
+                    updatedTabs.push(`CSS (${file.name})`);
+                    lastTab = 'css';
+                } else if (ext === '.js' || ext === '.mjs') {
+                    nextJs = content;
+                    updatedTabs.push(`Script (${file.name})`);
+                    lastTab = 'js';
+                } else if (ext === '.html' || ext === '.htm' || content.trim().startsWith('<') || content.includes('</html>')) {
+                    const split = splitHTML(content);
+                    nextHtml = split.html;
+                    if (split.css) {
+                        nextCss = split.css;
+                    }
+                    if (split.js) {
+                        nextJs = split.js;
+                    }
+                    updatedTabs.push(`HTML (${file.name})`);
+                    lastTab = 'html';
+                } else {
+                    if (activeHtmlTab === 'css') {
+                        nextCss = content;
+                        updatedTabs.push(`CSS (${file.name})`);
+                        lastTab = 'css';
+                    } else if (activeHtmlTab === 'js') {
+                        nextJs = content;
+                        updatedTabs.push(`Script (${file.name})`);
+                        lastTab = 'js';
+                    } else {
+                        nextHtml = content;
+                        updatedTabs.push(`HTML (${file.name})`);
+                        lastTab = 'html';
+                    }
+                }
+            }
+
+            setHtmlCode(nextHtml);
+            setCssCode(nextCss);
+            setJsCode(nextJs);
+            const combined = buildFullHTML(nextHtml, nextCss, nextJs);
+            setHtmlContent(combined);
+            saveHTMLTabs({ html: nextHtml, css: nextCss, js: nextJs });
+            saveHTMLContent(combined);
+
+            if (lastTab) {
+                setActiveHtmlTab(lastTab);
+            }
+
+            if (updatedTabs.length === 1) {
+                toast.success(`Imported ${updatedTabs[0]}`, 'File Uploaded');
+            } else if (updatedTabs.length > 1) {
+                toast.success(`Imported ${updatedTabs.length} files: ${updatedTabs.join(', ')}`, 'Bundle Uploaded');
+            }
         } else if (currentFormat === 'json') {
-            setJsonContent(content);
+            const file = files[0];
+            const content = file?.content || '';
+
+            try {
+                const parsed = JSON.parse(content);
+                const formatted = JSON.stringify(parsed, null, 2);
+                setJsonContent(formatted);
+                saveJSONContent(formatted);
+                toast.success(`Imported and formatted JSON: ${file.name || 'document.json'}`, 'JSON Uploaded');
+            } catch (err) {
+                setJsonContent(content);
+                saveJSONContent(content);
+                toast.warning(`Uploaded with JSON syntax error: ${err.message}`, 'JSON Warning');
+            }
         } else {
+            const file = files[0];
+            const content = file?.content || '';
             setMarkdown(content);
             saveMarkdown(content);
+            toast.success(`Imported Markdown: ${file.name || 'document.md'}`, 'Markdown Uploaded');
         }
-    }, [currentFormat]);
+    }, [currentFormat, htmlCode, cssCode, jsCode, activeHtmlTab, toast]);
 
     // Export HTML
     const handleExportHTML = useCallback(() => {
@@ -239,7 +371,13 @@ export function EditorProvider({ children }) {
     const handleCopy = useCallback(async () => {
         let contentToCopy = '';
         if (currentFormat === 'html') contentToCopy = htmlContent;
-        else if (currentFormat === 'json') contentToCopy = renderJSON(jsonContent);
+        else if (currentFormat === 'json') {
+            try {
+                contentToCopy = JSON.stringify(JSON.parse(jsonContent), null, 2);
+            } catch {
+                contentToCopy = jsonContent;
+            }
+        }
         else contentToCopy = renderMarkdown(markdown);
 
         try {
@@ -257,11 +395,74 @@ export function EditorProvider({ children }) {
     }, []);
 
     const handleConfirmClear = useCallback(() => {
-        if (currentFormat === 'html') setHtmlContent('');
-        else if (currentFormat === 'json') setJsonContent('');
-        else setMarkdown('');
+        if (currentFormat === 'html') {
+            setHtmlCode('');
+            setCssCode('');
+            setJsCode('');
+            setHtmlContent('');
+            saveHTMLTabs({ html: '', css: '', js: '' });
+            saveHTMLContent('');
+        } else if (currentFormat === 'json') {
+            setJsonContent('');
+        } else {
+            setMarkdown('');
+        }
         setShowConfirmClear(false);
         toast.success('Editor cleared.', 'Cleared');
+    }, [currentFormat, toast]);
+
+    // Reset to default template
+    const handleReset = useCallback(() => {
+        const isEmpty = currentFormat === 'html'
+            ? (!htmlCode?.trim() && !cssCode?.trim() && !jsCode?.trim())
+            : currentFormat === 'json'
+                ? !jsonContent?.trim()
+                : !markdown?.trim();
+
+        if (isEmpty) {
+            if (currentFormat === 'html') {
+                setHtmlCode(DEFAULT_HTML_CODE);
+                setCssCode(DEFAULT_CSS_CODE);
+                setJsCode(DEFAULT_JS_CODE);
+                const combined = buildFullHTML(DEFAULT_HTML_CODE, DEFAULT_CSS_CODE, DEFAULT_JS_CODE);
+                setHtmlContent(combined);
+                saveHTMLTabs({ html: DEFAULT_HTML_CODE, css: DEFAULT_CSS_CODE, js: DEFAULT_JS_CODE });
+                saveHTMLContent(combined);
+                toast.success('Default HTML template loaded.', 'Template Restored');
+            } else if (currentFormat === 'json') {
+                setJsonContent(DEFAULT_JSON);
+                saveJSONContent(DEFAULT_JSON);
+                toast.success('Default JSON template loaded.', 'Template Restored');
+            } else {
+                setMarkdown(DEFAULT_MARKDOWN);
+                saveMarkdown(DEFAULT_MARKDOWN);
+                toast.success('Default Markdown template loaded.', 'Template Restored');
+            }
+        } else {
+            setShowConfirmReset(true);
+        }
+    }, [currentFormat, htmlCode, cssCode, jsCode, jsonContent, markdown, toast]);
+
+    const handleConfirmReset = useCallback(() => {
+        if (currentFormat === 'html') {
+            setHtmlCode(DEFAULT_HTML_CODE);
+            setCssCode(DEFAULT_CSS_CODE);
+            setJsCode(DEFAULT_JS_CODE);
+            const combined = buildFullHTML(DEFAULT_HTML_CODE, DEFAULT_CSS_CODE, DEFAULT_JS_CODE);
+            setHtmlContent(combined);
+            saveHTMLTabs({ html: DEFAULT_HTML_CODE, css: DEFAULT_CSS_CODE, js: DEFAULT_JS_CODE });
+            saveHTMLContent(combined);
+            toast.success('Default HTML template restored.', 'Template Restored');
+        } else if (currentFormat === 'json') {
+            setJsonContent(DEFAULT_JSON);
+            saveJSONContent(DEFAULT_JSON);
+            toast.success('Default JSON template restored.', 'Template Restored');
+        } else {
+            setMarkdown(DEFAULT_MARKDOWN);
+            saveMarkdown(DEFAULT_MARKDOWN);
+            toast.success('Default Markdown template restored.', 'Template Restored');
+        }
+        setShowConfirmReset(false);
     }, [currentFormat, toast]);
 
     // AI Action
@@ -291,6 +492,10 @@ export function EditorProvider({ children }) {
                 setMarkdown(result);
             } else if (currentFormat === 'html') {
                 const result = await fixHTML(htmlContent, aiProvider, aiApiKey);
+                const split = splitHTML(result);
+                setHtmlCode(split.html);
+                setCssCode(split.css);
+                setJsCode(split.js);
                 setHtmlContent(result);
             } else if (currentFormat === 'json') {
                 const result = await fixJSON(jsonContent, aiProvider, aiApiKey);
@@ -305,10 +510,25 @@ export function EditorProvider({ children }) {
 
     // Toolbar config
     const toolbarConfig = currentFormat === 'html'
-        ? { accept: '.html,.htm', label: 'Fix HTML' }
+        ? {
+            accept: '.html,.htm,.css,.js',
+            label: 'Fix HTML',
+            tooltip: 'Upload Web files (.html, .css, .js)',
+            multiple: true,
+        }
         : currentFormat === 'json'
-            ? { accept: '.json', label: 'Fix JSON' }
-            : { accept: '.md,.txt', label: 'Convert' };
+            ? {
+                accept: '.json',
+                label: 'Fix JSON',
+                tooltip: 'Upload JSON (.json)',
+                multiple: false,
+            }
+            : {
+                accept: '.md,.markdown,.txt',
+                label: 'Convert',
+                tooltip: 'Upload Markdown (.md, .txt)',
+                multiple: false,
+            };
 
     const handleScrollSyncToggle = useCallback(() => {
         setScrollSync(prev => !prev);
@@ -345,6 +565,14 @@ export function EditorProvider({ children }) {
         setMarkdown,
         htmlContent,
         setHtmlContent,
+        htmlCode,
+        setHtmlCode,
+        cssCode,
+        setCssCode,
+        jsCode,
+        setJsCode,
+        activeHtmlTab,
+        setActiveHtmlTab,
         jsonContent,
         setJsonContent,
         currentFormat,
@@ -354,6 +582,8 @@ export function EditorProvider({ children }) {
         handleExportHTML,
         handleExportPDF,
         handleCopy,
+        handleReset,
+        handleConfirmReset,
         handleClear,
         handleConfirmClear,
 
@@ -372,6 +602,8 @@ export function EditorProvider({ children }) {
         // Dialog & Toast
         showConfirmClear,
         setShowConfirmClear,
+        showConfirmReset,
+        setShowConfirmReset,
         toasts,
         removeToast,
         toolbarConfig,

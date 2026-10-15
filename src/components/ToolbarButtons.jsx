@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import Tooltip from './Tooltip';
 
 /**
  * Minimalist action button (Upload, HTML, PDF, Copy, Clear)
  */
-export function ToolBtn({ icon, label, onClick, tokens, isClear }) {
+export function ToolBtn({ icon, label, onClick, tokens, isClear, tooltip, align = 'center' }) {
     const [hovered, setHovered] = useState(false);
     const [pressed, setPressed] = useState(false);
 
@@ -15,7 +16,7 @@ export function ToolBtn({ icon, label, onClick, tokens, isClear }) {
     const border = isClear ? tokens.clearBorder : tokens.btnBorder;
     const color = isClear ? tokens.clearColor : tokens.btnColor;
 
-    return (
+    const btn = (
         <button
             onClick={onClick}
             aria-label={label}
@@ -49,20 +50,31 @@ export function ToolBtn({ icon, label, onClick, tokens, isClear }) {
             <span className="toolbar-btn-label">{label}</span>
         </button>
     );
+
+    if (tooltip) {
+        return (
+            <Tooltip content={tooltip} position="bottom" align={align}>
+                {btn}
+            </Tooltip>
+        );
+    }
+
+    return btn;
 }
 
 /**
  * Minimalist icon-only button (AI toggle, scroll sync, settings, theme, font size)
  */
-export function IconBtn({ children, onClick, title, isActive, tokens }) {
+export function IconBtn({ children, onClick, title, isActive, tokens, tooltip, align = 'center' }) {
     const [hovered, setHovered] = useState(false);
     const [pressed, setPressed] = useState(false);
     const active = isActive ?? false;
+    const tip = tooltip || title;
 
-    return (
+    const btn = (
         <button
             onClick={onClick}
-            aria-label={title}
+            aria-label={title || tooltip}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => { setHovered(false); setPressed(false); }}
             onMouseDown={() => setPressed(true)}
@@ -87,4 +99,14 @@ export function IconBtn({ children, onClick, title, isActive, tokens }) {
             {children}
         </button>
     );
+
+    if (tip) {
+        return (
+            <Tooltip content={tip} position="bottom" align={align}>
+                {btn}
+            </Tooltip>
+        );
+    }
+
+    return btn;
 }
