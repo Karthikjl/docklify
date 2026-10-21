@@ -1,34 +1,66 @@
 'use client';
 
-import { useState } from 'react';
-import { saveProvider, saveApiKey, loadProvider, loadApiKey } from '../utils/aiStorage';
+import { useState, useEffect } from 'react';
+import { saveApiKey, loadApiKey, saveModel, loadModel } from '../utils/aiStorage';
+import { listGeminiModels, PREFERRED_GEMINI_MODEL } from '../utils/aiService';
+import { useDebounce } from '../hooks/useDebounce';
 import { BotIcon } from './Icons';
+import Dropdown from './Dropdown';
 
 export default function AISettings({ isOpen, onClose, onSave }) {
-    const [provider, setProvider] = useState(() => loadProvider());
     const [apiKey, setApiKey] = useState(() => loadApiKey());
+    const [savedModel, setSavedModel] = useState(() => loadModel());
     const [showKey, setShowKey] = useState(false);
     const [error, setError] = useState('');
+    // Outcome of the last model lookup, tagged with the key it was made for
+    const [lookup, setLookup] = useState(null);
+
+    const trimmedKey = apiKey.trim();
+    const debouncedKey = useDebounce(trimmedKey, 600);
+
+    // Validate the key by loading the real model list from Gemini
+    useEffect(() => {
+        if (!isOpen || !debouncedKey) return;
+        const controller = new AbortController();
+
+        listGeminiModels(debouncedKey, controller.signal)
+            .then((models) => setLookup({ key: debouncedKey, models }))
+            .catch((err) => {
+                if (err.name === 'AbortError') return;
+                setLookup({ key: debouncedKey, error: err.message });
+            });
+
+        return () => controller.abort();
+    }, [isOpen, debouncedKey]);
+
+    const lookupIsCurrent = lookup?.key === trimmedKey && debouncedKey === trimmedKey;
+    const status = !trimmedKey
+        ? 'idle'
+        : !lookupIsCurrent
+            ? 'checking'
+            : lookup.error
+                ? 'invalid'
+                : 'valid';
+
+    const models = status === 'valid' ? lookup.models : [];
+    const modelOptions = models.map((m) => ({ value: m.id, label: m.name, description: m.id }));
+
+    // Saved choice if it still exists, otherwise the preferred default, otherwise the first model
+    const model = models.some((m) => m.id === savedModel)
+        ? savedModel
+        : models.some((m) => m.id === PREFERRED_GEMINI_MODEL)
+            ? PREFERRED_GEMINI_MODEL
+            : models[0]?.id || '';
 
     const handleSave = () => {
-        if (!apiKey || apiKey.trim().length === 0) {
-            setError('Please enter an API key');
+        if (status !== 'valid' || !model) {
+            setError('Enter a valid API key and choose a model');
             return;
         }
 
-        if (provider === 'gemini' && !apiKey.startsWith('AIza')) {
-            setError('Gemini API keys typically start with "AIza"');
-            return;
-        }
-
-        if (provider === 'openai' && !apiKey.startsWith('sk-')) {
-            setError('OpenAI API keys start with "sk-"');
-            return;
-        }
-
-        saveProvider(provider);
-        saveApiKey(apiKey);
-        onSave(provider, apiKey);
+        saveApiKey(trimmedKey);
+        saveModel(model);
+        onSave(trimmedKey, model);
         onClose();
     };
 
@@ -70,21 +102,6 @@ export default function AISettings({ isOpen, onClose, onSave }) {
 
                 {/* Content */}
                 <div className="space-y-3.5">
-                    {/* Provider Selection */}
-                    <div>
-                        <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
-                            Provider
-                        </label>
-                        <select
-                            value={provider}
-                            onChange={(e) => setProvider(e.target.value)}
-                            className="w-full text-xs px-3 py-2 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#151518] text-zinc-900 dark:text-zinc-100 outline-none focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors"
-                        >
-                            <option value="gemini">Google Gemini (Free tier available)</option>
-                            <option value="openai">OpenAI (GPT-4o)</option>
-                        </select>
-                    </div>
-
                     {/* API Key Input */}
                     <div>
                         <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
@@ -98,7 +115,7 @@ export default function AISettings({ isOpen, onClose, onSave }) {
                                     setApiKey(e.target.value);
                                     setError('');
                                 }}
-                                placeholder={provider === 'gemini' ? 'AIza...' : 'sk-...'}
+                                placeholder="AIza..."
                                 className="w-full text-xs px-3 py-2 pr-12 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#151518] text-zinc-900 dark:text-zinc-100 font-mono outline-none focus:border-zinc-400 dark:focus:border-zinc-600 transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
                             />
                             <button
@@ -112,34 +129,50 @@ export default function AISettings({ isOpen, onClose, onSave }) {
                         </div>
                     </div>
 
+                    {/* Key status */}
+                    {status === 'checking' && (
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Checking API key…</p>
+                    )}
+                    {status === 'invalid' && (
+                        <p className="text-[11px] text-red-600 dark:text-red-400">{lookup.error}</p>
+                    )}
+
+                    {/* Model selection: only once the key is verified */}
+                    {status === 'valid' && (
+                        <div>
+                            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1.5">
+                                Model
+                                <span className="ml-1.5 font-normal text-zinc-400 dark:text-zinc-500">
+                                    ({models.length} available)
+                                </span>
+                            </label>
+                            <Dropdown
+                                label="Gemini model"
+                                searchable
+                                options={modelOptions}
+                                value={model}
+                                onChange={setSavedModel}
+                            />
+                        </div>
+                    )}
+
                     {/* Privacy notice */}
                     <div className="bg-zinc-50 dark:bg-[#151518] border border-zinc-200 dark:border-zinc-800/80 rounded-md p-2.5">
                         <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                            Your API key is saved locally in this browser only. It is never transmitted to any third-party server.
+                            Your API key is saved locally in this browser only and is sent only to Google's Gemini API.
                         </p>
                     </div>
 
                     {/* Help Link */}
                     <div className="text-[11px] text-zinc-500">
-                        {provider === 'gemini' ? (
-                            <a
-                                href="https://makersuite.google.com/app/apikey"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-zinc-700 dark:text-zinc-300 hover:underline"
-                            >
-                                Get a Google Gemini API key →
-                            </a>
-                        ) : (
-                            <a
-                                href="https://platform.openai.com/api-keys"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-zinc-700 dark:text-zinc-300 hover:underline"
-                            >
-                                Get an OpenAI API key →
-                            </a>
-                        )}
+                        <a
+                            href="https://aistudio.google.com/app/apikey"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-zinc-700 dark:text-zinc-300 hover:underline"
+                        >
+                            Get a Google Gemini API key →
+                        </a>
                     </div>
 
                     {/* Error Message */}
@@ -160,7 +193,8 @@ export default function AISettings({ isOpen, onClose, onSave }) {
                     </button>
                     <button
                         onClick={handleSave}
-                        className="px-3.5 py-1.5 text-xs font-semibold rounded-md bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
+                        disabled={status !== 'valid' || !model}
+                        className="disabled:opacity-40 disabled:cursor-not-allowed px-3.5 py-1.5 text-xs font-semibold rounded-md bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition-colors"
                     >
                         Save Settings
                     </button>

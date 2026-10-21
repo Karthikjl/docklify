@@ -39,10 +39,10 @@
 - **Copy Content** — One-click clipboard copy
 - **File Upload** — Open and edit `.md`, `.html`, `.htm`, `.json`, `.txt` files directly
 
-### AI Assistance (Gemini & OpenAI)
+### AI Assistance (Google Gemini)
 - **Convert to Markdown** — Transform unstructured plain text into formatted Markdown
 - **Fix Syntax** — AI repairs broken HTML tags and invalid JSON syntax
-- **Zero-Leak Client Storage** — API keys are stored strictly in your browser's `localStorage` and never sent to third-party intermediary servers
+- **Zero-Leak Client Storage** — Your API key is stored in your browser's `localStorage` and sent only to Google's Gemini API
 
 ### Minimalist Monochrome Design
 - **Architectural Minimalism** — Flat neutral zinc surfaces, 1px hairline borders (`border-zinc-200 dark:border-zinc-800`), and zero visual noise
@@ -143,7 +143,7 @@ Markdown-Viewer/
 │   │   ├── htmlRenderer.js      # HTML formatter
 │   │   └── jsonRenderer.js      # JSON syntax highlighting
 │   ├── utils/
-│   │   ├── aiService.js         # Gemini / OpenAI API integration
+│   │   ├── aiService.js         # Gemini API integration (model list, convert, fix)
 │   │   ├── aiStorage.js         # LocalStorage persistence for AI credentials
 │   │   ├── defaultContent.js    # Sample content templates
 │   │   ├── editorThemes.js      # Monaco editor themes (Dracula, Monokai, etc.)
@@ -178,7 +178,7 @@ Markdown-Viewer/
 
 ### AI Setup
 1. Enable AI Mode via the robot icon in the toolbar.
-2. Click the settings gear icon to configure your API key (**Google Gemini** or **OpenAI**).
+2. Click the settings gear icon to paste your **Google Gemini** API key. Once it is verified, pick a model from the list loaded for your key.
 3. Use the contextual AI action button (**Convert**, **Fix HTML**, or **Fix JSON**).
 
 ---

@@ -18,7 +18,7 @@ import {
     loadJSONContent,
     saveJSONContent
 } from '../utils/storageUtils';
-import { loadAIMode, saveAIMode, loadProvider, loadApiKey } from '../utils/aiStorage';
+import { loadAIMode, saveAIMode, loadModel, loadApiKey } from '../utils/aiStorage';
 import { DEFAULT_EDITOR_THEME } from '../utils/editorThemes';
 import { convertToMarkdown, fixHTML, fixJSON } from '../utils/aiService';
 import { exportAsHTML, exportAsPDF, exportHTMLAsPDF, copyHTMLToClipboard } from '../utils/exportUtils';
@@ -50,7 +50,7 @@ export function EditorProvider({ children }) {
 
     // AI State
     const [aiMode, setAiMode] = useState(false);
-    const [aiProvider, setAiProvider] = useState('gemini');
+    const [aiModel, setAiModel] = useState('');
     const [aiApiKey, setAiApiKey] = useState('');
     const [showAISettings, setShowAISettings] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
@@ -107,7 +107,7 @@ export function EditorProvider({ children }) {
         setTheme(savedTheme);
         setFontSize(loadFontSize());
         setAiMode(loadAIMode());
-        setAiProvider(loadProvider());
+        setAiModel(loadModel());
         setAiApiKey(loadApiKey());
 
         const savedEditorTheme = localStorage.getItem('doclify-editor-theme');
@@ -467,7 +467,7 @@ export function EditorProvider({ children }) {
 
     // AI Action
     const handleAiAction = useCallback(async () => {
-        if (!aiApiKey) {
+        if (!aiApiKey || !aiModel) {
             setShowAISettings(true);
             return;
         }
@@ -476,7 +476,7 @@ export function EditorProvider({ children }) {
             toast.warning('Enter some text first.', 'Nothing to convert');
             return;
         }
-        if (currentFormat === 'html' && !htmlContent.trim()) {
+        if (currentFormat === 'html' && !htmlCode.trim() && !cssCode.trim() && !jsCode.trim()) {
             toast.warning('Enter some HTML first.', 'Nothing to fix');
             return;
         }
@@ -488,17 +488,20 @@ export function EditorProvider({ children }) {
         setAiLoading(true);
         try {
             if (currentFormat === 'markdown') {
-                const result = await convertToMarkdown(markdown, aiProvider, aiApiKey);
+                const result = await convertToMarkdown(markdown, aiApiKey, aiModel);
                 setMarkdown(result);
             } else if (currentFormat === 'html') {
-                const result = await fixHTML(htmlContent, aiProvider, aiApiKey);
-                const split = splitHTML(result);
-                setHtmlCode(split.html);
-                setCssCode(split.css);
-                setJsCode(split.js);
-                setHtmlContent(result);
+                const fixed = await fixHTML(
+                    { html: htmlCode, css: cssCode, js: jsCode },
+                    aiApiKey,
+                    aiModel
+                );
+                setHtmlCode(fixed.html);
+                setCssCode(fixed.css);
+                setJsCode(fixed.js);
+                setHtmlContent(buildFullHTML(fixed.html, fixed.css, fixed.js));
             } else if (currentFormat === 'json') {
-                const result = await fixJSON(jsonContent, aiProvider, aiApiKey);
+                const result = await fixJSON(jsonContent, aiApiKey, aiModel);
                 setJsonContent(result);
             }
         } catch (e) {
@@ -506,7 +509,7 @@ export function EditorProvider({ children }) {
         } finally {
             setAiLoading(false);
         }
-    }, [currentFormat, markdown, htmlContent, jsonContent, aiProvider, aiApiKey, toast]);
+    }, [currentFormat, markdown, htmlCode, cssCode, jsCode, jsonContent, aiApiKey, aiModel, toast]);
 
     // Toolbar config
     const toolbarConfig = currentFormat === 'html'
@@ -590,8 +593,8 @@ export function EditorProvider({ children }) {
         // AI
         aiMode,
         setAiMode,
-        aiProvider,
-        setAiProvider,
+        aiModel,
+        setAiModel,
         aiApiKey,
         setAiApiKey,
         showAISettings,

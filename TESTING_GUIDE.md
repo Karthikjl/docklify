@@ -146,7 +146,7 @@ $E = mc^2$
 3. Click **Convert** button
 4. Should format text into proper Markdown
 
-**Note**: Requires API key (Gemini or OpenAI)
+**Note**: Requires a Gemini API key
 
 ### HTML AI:
 1. Switch to HTML tab
@@ -256,7 +256,7 @@ $E = mc^2$
 **Solution**: Run `npm install react-router-dom`
 
 ### Issue: "AI not working"
-**Solution**: Click settings icon, add your Gemini/OpenAI API key
+**Solution**: Click settings icon, add your Gemini API key and choose a model
 
 ### Issue: "Blank preview"
 **Solution**: Check browser console for errors

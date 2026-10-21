@@ -1,6 +1,6 @@
 import MarkdownIt from 'markdown-it';
 import taskLists from 'markdown-it-task-lists';
-import katex from 'markdown-it-katex';
+import katex from '@vscode/markdown-it-katex';
 import DOMPurify from 'dompurify';
 
 // Configure markdown-it with all plugins

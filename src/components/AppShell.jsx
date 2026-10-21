@@ -61,9 +61,9 @@ export default function AppShell({ children }) {
                 key={editor.showAISettings ? 'open' : 'closed'}
                 isOpen={editor.showAISettings}
                 onClose={() => editor.setShowAISettings(false)}
-                onSave={(p, k) => {
-                    editor.setAiProvider(p);
-                    editor.setAiApiKey(k);
+                onSave={(key, model) => {
+                    editor.setAiApiKey(key);
+                    editor.setAiModel(model);
                 }}
             />
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
+import DOMPurify from 'dompurify';
 import { injectPreviewGuards } from '../renderers/htmlRenderer';
 
 export default function Preview({ content, theme, fontSize, scrollSync, language }) {
@@ -52,7 +53,7 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
                 edgeLabelBackground: '#f8fafc', // Match light bg
                 fontFamily: 'Poppins, sans-serif',
             },
-            securityLevel: 'loose',
+            securityLevel: 'strict',
             fontFamily: 'Poppins, sans-serif',
         });
     }, [theme]);
@@ -101,7 +102,11 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
                     mermaid
                         .render(id, code)
                         .then(({ svg }) => {
-                            container.innerHTML = svg;
+                            // Mermaid output is untrusted: sanitize the SVG before inserting
+                            container.innerHTML = DOMPurify.sanitize(svg, {
+                                USE_PROFILES: { svg: true, svgFilters: true, html: true },
+                                ADD_TAGS: ['foreignObject'],
+                            });
                             const svgEl = container.querySelector('svg');
                             if (svgEl) {
                                 const w = parseFloat(svgEl.getAttribute('width')) || 0;
@@ -134,12 +139,13 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
                         })
                         .catch((err) => {
                             console.error('Mermaid render error:', err);
-                            container.innerHTML = `
-                                <div class="text-red-500 p-4 border border-red-300 rounded">
-                                    <strong>Mermaid Error:</strong>
-                                    ${err.message}
-                                </div>
-                            `;
+                            container.textContent = '';
+                            const box = document.createElement('div');
+                            box.className = 'text-red-500 p-4 border border-red-300 rounded';
+                            const label = document.createElement('strong');
+                            label.textContent = 'Mermaid Error: ';
+                            box.append(label, document.createTextNode(err.message));
+                            container.appendChild(box);
                         });
                 } catch (err) {
                     console.error(err);
@@ -239,7 +245,7 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
                 <iframe
                     title="HTML Preview"
                     srcDoc={getIframeContent()}
-                    className="w-full h-full border-0"
+                    className="w-full h-full border-0 bg-white"
                     sandbox="allow-scripts"
                 />
             </div>

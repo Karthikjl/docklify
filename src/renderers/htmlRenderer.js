@@ -388,12 +388,19 @@ export function splitHTML(fullHTML) {
         html = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
     }
 
-    // Extract inline <script>...</script> (skip external scripts with src=)
-    const scriptMatches = html.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi);
-    if (scriptMatches) {
-        js = scriptMatches.map(m => m.replace(/<script[^>]*>|<\/script>/gi, '').trim()).join('\n\n');
-        html = html.replace(/<script(?![^>]*\bsrc=)[^>]*>[\s\S]*?<\/script>/gi, '');
-    }
+    // Extract inline classic <script>...</script>. Leave alone scripts with src=
+    // and non-classic types (module, importmap, application/ld+json, ...), which
+    // would break if merged into the plain Script tab.
+    const classicScripts = [];
+    html = html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi, (match, attrs, body) => {
+        if (/\bsrc\s*=/i.test(attrs)) return match;
+        const type = attrs.match(/\btype\s*=\s*["']?([^"'\s>]*)/i)?.[1]?.toLowerCase();
+        const isClassic = !type || /^(text|application)\/(javascript|ecmascript)$/.test(type);
+        if (!isClassic) return match;
+        classicScripts.push(body.trim());
+        return '';
+    });
+    js = classicScripts.join('\n\n');
 
     return {
         html: html.trim(),
@@ -410,20 +417,23 @@ export function buildFullHTML(html = '', css = '', js = '') {
 
     if (hasDoctype) {
         let doc = html;
+        // Replacement callbacks keep "$" sequences in user CSS/JS literal
         if (css && css.trim()) {
-            if (doc.includes('</head>')) {
-                doc = doc.replace('</head>', `<style>\n${css}\n</style>\n</head>`);
-            } else if (doc.includes('<body')) {
-                doc = doc.replace('<body', `<style>\n${css}\n</style>\n<body`);
+            const styleTag = `<style>\n${css}\n</style>\n`;
+            if (/<\/head>/i.test(doc)) {
+                doc = doc.replace(/<\/head>/i, () => `${styleTag}</head>`);
+            } else if (/<body[\s>]/i.test(doc)) {
+                doc = doc.replace(/<body[\s>]/i, (m) => `${styleTag}${m}`);
             } else {
-                doc = `<style>\n${css}\n</style>\n` + doc;
+                doc = styleTag + doc;
             }
         }
         if (js && js.trim()) {
-            if (doc.includes('</body>')) {
-                doc = doc.replace('</body>', `<script>\n${js}\n<\/script>\n</body>`);
+            const scriptTag = `<script>\n${js}\n<\/script>\n`;
+            if (/<\/body>/i.test(doc)) {
+                doc = doc.replace(/<\/body>/i, () => `${scriptTag}</body>`);
             } else {
-                doc = doc + `\n<script>\n${js}\n<\/script>`;
+                doc = doc + `\n${scriptTag}`;
             }
         }
         return doc;
@@ -505,15 +515,16 @@ export function injectPreviewGuards(htmlContent) {
         let result = htmlContent;
 
         // Inject <base target="_blank"> in head
-        if (/<head[^>]*>/i.test(result)) {
-            result = result.replace(/<head[^>]*>/i, `$&${baseTag}`);
-        } else if (/<html[^>]*>/i.test(result)) {
-            result = result.replace(/<html[^>]*>/i, `$&<head>${baseTag}</head>`);
+        // (\b-style match so <header> / <html-like> tags are not mistaken for <head>)
+        if (/<head(?:\s[^>]*)?>/i.test(result)) {
+            result = result.replace(/<head(?:\s[^>]*)?>/i, (m) => `${m}${baseTag}`);
+        } else if (/<html(?:\s[^>]*)?>/i.test(result)) {
+            result = result.replace(/<html(?:\s[^>]*)?>/i, (m) => `${m}<head>${baseTag}</head>`);
         }
 
         // Inject guardScript before </body> or at end
         if (/<\/body>/i.test(result)) {
-            result = result.replace(/<\/body>/i, `${guardScript}</body>`);
+            result = result.replace(/<\/body>/i, () => `${guardScript}</body>`);
         } else {
             result = result + guardScript;
         }

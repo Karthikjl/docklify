@@ -1,6 +1,6 @@
 /**
  * AI Service
- * LLM API integration for text-to-Markdown conversion
+ * Google Gemini integration: text-to-Markdown conversion and HTML/JSON syntax fixing
  */
 
 const PROMPT_TEMPLATE = `You are an expert Markdown formatter. Your task is to convert plain text into well-structured, professional Markdown.
@@ -37,301 +37,245 @@ INPUT TEXT TO CONVERT:
 
 MARKDOWN OUTPUT (no explanations, just Markdown):`;
 
-/**
- * Convert text to Markdown using Gemini API
- * @param {string} text - Plain text to convert
- * @param {string} apiKey - Gemini API key
- * @returns {Promise<string>} - Converted Markdown
- */
-export async function convertWithGemini(text, apiKey) {
-    if (!text || !text.trim()) {
-        throw new Error('Input text is empty');
-    }
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
+/** Model preselected when the user has not chosen one (used only if present in the live list) */
+export const PREFERRED_GEMINI_MODEL = 'gemini-2.5-flash';
+
+/**
+ * Fetch the models available to this API key that support text generation.
+ * Doubles as API key validation: an invalid key makes the request fail.
+ * @param {string} apiKey - Gemini API key
+ * @param {AbortSignal} [signal] - Optional abort signal
+ * @returns {Promise<Array<{id: string, name: string, description: string}>>}
+ */
+export async function listGeminiModels(apiKey, signal) {
     if (!apiKey) {
         throw new Error('Gemini API key is required');
     }
 
-    const prompt = PROMPT_TEMPLATE.replace('{{USER_TEXT}}', text);
+    const models = [];
+    let pageToken = '';
 
-    console.log('🔷 Gemini API call starting...');
-    console.log('Text length:', text.length);
-
-    try {
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: prompt }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.3,
-                        topK: 40,
-                        topP: 0.95,
-                        maxOutputTokens: 8192,
-                    },
-                }),
-            }
-        );
-
-        console.log('🔷 Gemini response status:', response.status);
+    do {
+        const url = `${GEMINI_BASE_URL}/models?pageSize=1000${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`;
+        const response = await fetch(url, {
+            headers: { 'x-goog-api-key': apiKey },
+            signal,
+        });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            const errorMessage = errorData.error?.message || `Gemini API error: ${response.status}`;
-
-            // Handle specific error codes
-            if (response.status === 503) {
-                throw new Error('Gemini API is temporarily overloaded. Please try again in a few seconds.');
-            }
-            if (response.status === 429) {
-                throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-            }
-            if (response.status === 400) {
-                throw new Error('Invalid request. Please check your input text.');
-            }
-
-            throw new Error(errorMessage);
+            throw new Error(errorData.error?.message || `Gemini API error: ${response.status}`);
         }
 
         const data = await response.json();
+        for (const m of data.models || []) {
+            if (!m.supportedGenerationMethods?.includes('generateContent')) continue;
+            const id = m.name.replace(/^models\//, '');
+            models.push({
+                id,
+                name: m.displayName || id,
+                description: m.description || '',
+            });
+        }
+        pageToken = data.nextPageToken || '';
+    } while (pageToken);
 
-        if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
-            throw new Error('Invalid response from Gemini API');
-        }
-
-        let result = data.candidates[0].content.parts[0].text.trim();
-
-        // Clean the response - remove code block wrappers if AI added them
-        // Sometimes AI wraps output in ```markdown ... ```
-        if (result.startsWith('```markdown') || result.startsWith('```md')) {
-            result = result.replace(/^```(?:markdown|md)\n/, '').replace(/\n```$/, '');
-        } else if (result.startsWith('```')) {
-            result = result.replace(/^```\n/, '').replace(/\n```$/, '');
-        }
-
-        return result.trim();
-    } catch (error) {
-        if (error.message.includes('API key') || error.message.includes('Invalid API key')) {
-            throw new Error('Invalid Gemini API key. Please check your key in Settings.');
-        }
-        if (error.message.includes('quota')) {
-            throw new Error('Gemini API quota exceeded. Please try again later or check your quota.');
-        }
-        if (error.message.includes('overloaded') || error.message.includes('503')) {
-            throw new Error('⏳ Gemini is busy right now. Please wait 10-30 seconds and try again.');
-        }
-        throw error;
-    }
+    return models;
 }
 
 /**
- * Convert text to Markdown using OpenAI API
+ * Send a prompt to a Gemini model and return the response text
+ * @param {string} prompt - Full prompt text
+ * @param {string} apiKey - Gemini API key
+ * @param {string} model - Model id, e.g. 'gemini-2.5-flash'
+ * @param {object} generationConfig - Gemini generation settings
+ * @returns {Promise<string>} - Trimmed response text
+ */
+async function generateWithGemini(prompt, apiKey, model, generationConfig) {
+    if (!apiKey) {
+        throw new Error('Gemini API key is required');
+    }
+    if (!model) {
+        throw new Error('No Gemini model selected. Choose one in AI Settings.');
+    }
+
+    const response = await fetch(
+        `${GEMINI_BASE_URL}/models/${encodeURIComponent(model)}:generateContent`,
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': apiKey,
+            },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || `Gemini API error: ${response.status}`;
+
+        if (response.status === 503) {
+            throw new Error('Gemini is busy right now. Please wait 10-30 seconds and try again.');
+        }
+        if (response.status === 429) {
+            throw new Error('Rate limit or quota exceeded. Please wait a moment and try again.');
+        }
+        if (response.status === 400 && /API key/i.test(errorMessage)) {
+            throw new Error('Invalid Gemini API key. Please check your key in Settings.');
+        }
+        throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    const candidate = data.candidates?.[0];
+    const text = candidate?.content?.parts?.[0]?.text;
+    if (!text) {
+        throw new Error('Invalid response from Gemini API');
+    }
+    if (candidate.finishReason === 'MAX_TOKENS') {
+        // Never hand back a cut-off result that would overwrite the user's content
+        throw new Error('The AI reply was cut off because the content is too long. Try a smaller section or another model.');
+    }
+
+    return text.trim();
+}
+
+/**
+ * Remove a surrounding ``` code fence if the model added one
+ * @param {string} text - Model output
+ * @param {string} lang - Language tag(s) to accept, as a regex source (e.g. 'html')
+ */
+function stripCodeFence(text, lang) {
+    if (!text.startsWith('```')) return text;
+    return text
+        .replace(new RegExp('^```(?:' + lang + ')?\\n'), '')
+        .replace(/\n```$/, '')
+        .trim();
+}
+
+/**
+ * Convert text to Markdown using Gemini
  * @param {string} text - Plain text to convert
- * @param {string} apiKey - OpenAI API key
+ * @param {string} apiKey - Gemini API key
+ * @param {string} model - Gemini model id
  * @returns {Promise<string>} - Converted Markdown
  */
-export async function convertWithOpenAI(text, apiKey) {
+export async function convertToMarkdown(text, apiKey, model) {
     if (!text || !text.trim()) {
         throw new Error('Input text is empty');
     }
 
-    if (!apiKey) {
-        throw new Error('OpenAI API key is required');
-    }
-
     const prompt = PROMPT_TEMPLATE.replace('{{USER_TEXT}}', text);
+    const result = await generateWithGemini(prompt, apiKey, model, {
+        temperature: 0.3,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 8192,
+    });
 
-    try {
-        const response = await fetch(
-            'https://api.openai.com/v1/chat/completions',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                },
-                body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'You are a helpful assistant that converts plain text to clean Markdown format.'
-                        },
-                        {
-                            role: 'user',
-                            content: prompt
-                        }
-                    ],
-                    temperature: 0.3,
-                    max_tokens: 4096,
-                }),
-            }
-        );
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error?.message || `OpenAI API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (!data.choices || !data.choices[0]?.message?.content) {
-            throw new Error('Invalid response from OpenAI API');
-        }
-
-        let result = data.choices[0].message.content.trim();
-
-        // Clean the response - remove code block wrappers if AI added them
-        if (result.startsWith('```markdown') || result.startsWith('```md')) {
-            result = result.replace(/^```(?:markdown|md)\n/, '').replace(/\n```$/, '');
-        } else if (result.startsWith('```')) {
-            result = result.replace(/^```\n/, '').replace(/\n```$/, '');
-        }
-
-        return result.trim();
-    } catch (error) {
-        if (error.message.includes('API key') || error.message.includes('Unauthorized')) {
-            throw new Error('Invalid OpenAI API key. Please check your key and try again.');
-        }
-        if (error.message.includes('quota') || error.message.includes('rate limit')) {
-            throw new Error('OpenAI API quota exceeded. Please try again later.');
-        }
-        throw error;
-    }
+    return stripCodeFence(result, 'markdown|md');
 }
 
 /**
- * Convert text to Markdown using the specified provider
- * @param {string} text - Plain text to convert
- * @param {string} provider - 'gemini' or 'openai'
- * @param {string} apiKey - API key
- * @returns {Promise<string>} - Converted Markdown
+ * Fix syntax errors across the HTML, CSS and JavaScript tabs using Gemini.
+ * The model receives all three together so it understands how they relate
+ * (ids/classes used by the CSS and JS, elements the JS expects, etc.).
+ * @param {{html: string, css: string, js: string}} code - Contents of each tab
+ * @returns {Promise<{html: string, css: string, js: string}>} - Fixed contents of each tab
  */
-export async function convertToMarkdown(text, provider, apiKey) {
-    if (provider === 'gemini') {
-        return convertWithGemini(text, apiKey);
-    } else if (provider === 'openai') {
-        return convertWithOpenAI(text, apiKey);
-    } else {
-        throw new Error(`Unsupported provider: ${provider}`);
-    }
-}
-
-/**
- * Fix HTML syntax errors using AI
- */
-export async function fixHTML(html, provider, apiKey) {
-    if (!html || !html.trim()) {
+export async function fixHTML({ html = '', css = '', js = '' }, apiKey, model) {
+    if (!html.trim() && !css.trim() && !js.trim()) {
         throw new Error('Input HTML is empty');
     }
 
-    if (!apiKey) {
-        throw new Error('API key is required');
-    }
+    const prompt = `You are an expert web developer fixing syntax errors in a small web page made of three files: HTML, CSS and JavaScript.
 
-    const prompt = `You are an expert HTML syntax fixer. Fix ONLY syntax errors while preserving the document structure.
+The three files belong together: the CSS styles the HTML, and the JavaScript runs inside the same page and works with its elements (by id, class, selector). Read ALL three before changing anything, and use each one as context for the others.
 
 CRITICAL RULES:
-1. Output ONLY valid HTML - no explanations, no markdown code blocks
-2. PRESERVE the complete document structure including:
-   - <!DOCTYPE html> declaration
-   - <html>, <head>, <body> tags
-   - All existing tags and structure
-3. Fix ONLY these types of errors:
-   - Unclosed tags (e.g., <div> without </div>)
-   - Missing quotes around attribute values (e.g., class=container → class="container")
-   - Improperly nested tags
-   - Invalid HTML syntax
-4. PRESERVE self-closing tags (e.g., <meta />, <br />, <img />)
-5. PRESERVE all styles, scripts, and content exactly as written
-6. Format with 2-space indentation
-7. Do NOT remove or restructure working HTML
+1. Fix ONLY syntax errors, in ANY of the three files:
+   - HTML: unclosed tags, improperly nested tags, missing quotes around attribute values, invalid syntax
+   - CSS: missing semicolons, braces or colons, malformed selectors, unclosed comments or strings
+   - JavaScript: missing brackets, parentheses, quotes or commas, unclosed strings or template literals, other syntax errors
+2. Do NOT rename, remove, restructure or rewrite anything that already works. Keep every id, class, selector, function and variable name exactly as written, so the three files keep working together.
+3. If a file is empty, keep it empty. Do not invent code.
+4. Keep <!DOCTYPE>, <html>, <head>, <body>, <link> and <script src> tags in the HTML file exactly as written. Do NOT move CSS or JavaScript into the HTML file; each file's code goes in its own section.
+5. Use 2-space indentation.
+6. Output EXACTLY the three sections below, with these marker lines on their own line, and nothing else - no explanations, no markdown code fences. Output the COMPLETE content of each file, never a summary or a partial diff.
 
-INPUT HTML:
-"""
+${FIX_MARKERS.html}
+(complete fixed HTML)
+${FIX_MARKERS.css}
+(complete fixed CSS)
+${FIX_MARKERS.js}
+(complete fixed JavaScript)
+
+Here are the files to fix.
+
+${FIX_MARKERS.html}
 ${html}
-"""
-
-FIXED HTML OUTPUT (only syntax fixes, preserve all structure):`;
+${FIX_MARKERS.css}
+${css}
+${FIX_MARKERS.js}
+${js}
+${FIX_MARKERS.end}`;
 
     try {
-        let result;
-        if (provider === 'gemini') {
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            temperature: 0.1,
-                            maxOutputTokens: 8192,
-                        },
-                    }),
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`Gemini API error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            result = data.candidates[0].content.parts[0].text.trim();
-        } else {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                },
-                body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
-                    messages: [
-                        { role: 'system', content: 'You are an HTML syntax fixer. Fix only syntax errors and preserve all document structure.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    temperature: 0.1,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`OpenAI API error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            result = data.choices[0].message.content.trim();
-        }
-
-        // Remove code block wrappers if present
-        if (result.startsWith('```html')) {
-            result = result.replace(/^```html\n/, '').replace(/\n```$/, '');
-        } else if (result.startsWith('```')) {
-            result = result.replace(/^```\n/, '').replace(/\n```$/, '');
-        }
-
-        return result.trim();
+        const result = await generateWithGemini(prompt, apiKey, model, {
+            temperature: 0.1,
+            maxOutputTokens: 8192,
+        });
+        return parseFixSections(result);
     } catch (error) {
         throw new Error(`Failed to fix HTML: ${error.message}`);
     }
 }
 
+const FIX_MARKERS = {
+    html: '=====HTML=====',
+    css: '=====CSS=====',
+    js: '=====JS=====',
+    end: '=====END=====',
+};
+
 /**
- * Fix JSON syntax errors using AI
+ * Split the model's labelled reply back into the three files
+ * @param {string} text - Model output containing the marker lines
  */
-export async function fixJSON(json, provider, apiKey) {
-    if (!json || !json.trim()) {
-        throw new Error('Input JSON is empty');
+function parseFixSections(text) {
+    const positions = ['html', 'css', 'js'].map((key) => ({
+        key,
+        at: text.indexOf(FIX_MARKERS[key]),
+    }));
+
+    if (positions.some((p) => p.at === -1) || !(positions[0].at < positions[1].at && positions[1].at < positions[2].at)) {
+        throw new Error('The AI reply was not in the expected format. Please try again.');
     }
 
-    if (!apiKey) {
-        throw new Error('API key is required');
+    const endAt = text.indexOf(FIX_MARKERS.end, positions[2].at);
+    const sections = {};
+    positions.forEach((p, i) => {
+        const start = p.at + FIX_MARKERS[p.key].length;
+        const end = i < 2 ? positions[i + 1].at : endAt === -1 ? text.length : endAt;
+        // Each section may still be wrapped in a code fence
+        sections[p.key] = stripCodeFence(text.slice(start, end).trim(), 'html|css|javascript|js');
+    });
+
+    return sections;
+}
+
+/**
+ * Fix JSON syntax errors using Gemini
+ */
+export async function fixJSON(json, apiKey, model) {
+    if (!json || !json.trim()) {
+        throw new Error('Input JSON is empty');
     }
 
     const prompt = `You are an expert JSON syntax fixer. Your task is to fix any JSON syntax errors and format the code properly.
@@ -353,60 +297,13 @@ ${json}
 FIXED JSON OUTPUT (no explanations, just the corrected JSON):`;
 
     try {
-        let result;
-        if (provider === 'gemini') {
-            const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            temperature: 0.1,
-                            maxOutputTokens: 8192,
-                        },
-                    }),
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`Gemini API error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            result = data.candidates[0].content.parts[0].text.trim();
-        } else {
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`,
-                },
-                body: JSON.stringify({
-                    model: 'gpt-3.5-turbo',
-                    messages: [
-                        { role: 'system', content: 'You are a JSON syntax fixer.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    temperature: 0.1,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`OpenAI API error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            result = data.choices[0].message.content.trim();
-        }
-
-        // Remove code block wrappers if present
-        if (result.startsWith('```json')) {
-            result = result.replace(/^```json\n/, '').replace(/\n```$/, '');
-        } else if (result.startsWith('```')) {
-            result = result.replace(/^```\n/, '').replace(/\n```$/, '');
-        }
+        const result = stripCodeFence(
+            await generateWithGemini(prompt, apiKey, model, {
+                temperature: 0.1,
+                maxOutputTokens: 8192,
+            }),
+            'json'
+        );
 
         // Validate that the result is actually valid JSON
         try {
@@ -415,7 +312,7 @@ FIXED JSON OUTPUT (no explanations, just the corrected JSON):`;
             throw new Error('AI returned invalid JSON. Please check your input.');
         }
 
-        return result.trim();
+        return result;
     } catch (error) {
         throw new Error(`Failed to fix JSON: ${error.message}`);
     }

@@ -4,7 +4,7 @@
  */
 
 const STORAGE_KEYS = {
-    AI_PROVIDER: 'markdown-viewer-ai-provider',
+    AI_MODEL: 'markdown-viewer-ai-model',
     AI_API_KEY: 'markdown-viewer-ai-key',
     AI_MODE: 'markdown-viewer-ai-mode',
 };
@@ -12,29 +12,29 @@ const STORAGE_KEYS = {
 const isBrowser = typeof window !== 'undefined';
 
 /**
- * Save AI provider
- * @param {string} provider - 'gemini' or 'openai'
+ * Save selected Gemini model id
+ * @param {string} model - Model id, e.g. 'gemini-2.5-flash'
  */
-export function saveProvider(provider) {
+export function saveModel(model) {
     if (!isBrowser) return;
     try {
-        localStorage.setItem(STORAGE_KEYS.AI_PROVIDER, provider);
+        localStorage.setItem(STORAGE_KEYS.AI_MODEL, model);
     } catch (error) {
-        console.error('Error saving AI provider:', error);
+        console.error('Error saving AI model:', error);
     }
 }
 
 /**
- * Load AI provider
- * @returns {string} - Saved provider or 'gemini' as default
+ * Load selected Gemini model id
+ * @returns {string} - Saved model id or empty string
  */
-export function loadProvider() {
-    if (!isBrowser) return 'gemini';
+export function loadModel() {
+    if (!isBrowser) return '';
     try {
-        return localStorage.getItem(STORAGE_KEYS.AI_PROVIDER) || 'gemini';
+        return localStorage.getItem(STORAGE_KEYS.AI_MODEL) || '';
     } catch (error) {
-        console.error('Error loading AI provider:', error);
-        return 'gemini';
+        console.error('Error loading AI model:', error);
+        return '';
     }
 }
 
@@ -102,6 +102,8 @@ export function clearAISettings() {
         Object.values(STORAGE_KEYS).forEach(key => {
             localStorage.removeItem(key);
         });
+        // Provider setting from versions that supported OpenAI
+        localStorage.removeItem('markdown-viewer-ai-provider');
     } catch (error) {
         console.error('Error clearing AI settings:', error);
     }
