@@ -10,6 +10,8 @@ import { FormatIcon, HtmlIcon, CssIcon, JsIcon } from '../components/Icons';
 import Tooltip from '../components/Tooltip';
 import { useFullscreen } from '../hooks/useFullscreen';
 import FullscreenButton from '../components/FullscreenButton';
+import GenerateButton from '../components/GenerateButton';
+import { GENERATE_CONFIG } from '../utils/generateConfig';
 
 export default function HtmlPage({
     htmlContent = '',
@@ -25,6 +27,7 @@ export default function HtmlPage({
     editorTheme,
     activeTab: controlledActiveTab,
     setActiveTab: controlledSetActiveTab,
+    onGenerate,
 }) {
     const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
     const [localActiveTab, setLocalActiveTab] = useState('html');
@@ -71,7 +74,7 @@ export default function HtmlPage({
                 leftPanel={
                     <div className="flex flex-col h-full bg-white dark:bg-[#09090b] border-r border-zinc-200 dark:border-zinc-800">
                         {/* Tab Switcher Header */}
-                        <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/70 dark:bg-[#0d0d10] min-h-[41px]">
+                        <div className="px-3 py-2 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap justify-between items-center gap-2 bg-zinc-50/70 dark:bg-[#0d0d10] min-h-[41px]">
                             <div className="flex items-center gap-1 p-0.5 rounded-lg bg-zinc-200/60 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/50">
                                 <button
                                     type="button"
@@ -111,16 +114,19 @@ export default function HtmlPage({
                                 </button>
                             </div>
 
-                            <Tooltip content={`${currentEditorConfig.formatLabel} (clean indentation)`} align="end">
-                                <button
-                                    onClick={handleFormat}
-                                    aria-label={currentEditorConfig.formatLabel}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors outline-none"
-                                >
-                                    <FormatIcon size={12} className="opacity-70" />
-                                    <span>Format {activeTab === 'html' ? 'HTML' : activeTab === 'css' ? 'CSS' : 'JS'}</span>
-                                </button>
-                            </Tooltip>
+                            <div className="flex items-center gap-2">
+                                <GenerateButton onClick={onGenerate} tooltip={GENERATE_CONFIG.html.tooltip} />
+                                <Tooltip content={`${currentEditorConfig.formatLabel} (clean indentation)`} align="end">
+                                    <button
+                                        onClick={handleFormat}
+                                        aria-label={currentEditorConfig.formatLabel}
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors outline-none"
+                                    >
+                                        <FormatIcon size={12} className="opacity-70" />
+                                        <span>Format {activeTab === 'html' ? 'HTML' : activeTab === 'css' ? 'CSS' : 'JS'}</span>
+                                    </button>
+                                </Tooltip>
+                            </div>
                         </div>
 
                         {/* Editor */}

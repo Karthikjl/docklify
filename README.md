@@ -1,6 +1,6 @@
 # Docklify
 
-> A fast, minimalist multi-format document viewer and editor with live preview — built with Next.js 16 (App Router), React 19, Monaco Editor, and Tailwind CSS.
+> A fast, minimalist multi-format (Markdown, HTML, JSON, Mermaid) document viewer and editor with live preview — built with Next.js 16 (App Router), React 19, Monaco Editor, and Tailwind CSS.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.4-black?logo=next.js&logoColor=white&style=flat-square)
 ![React](https://img.shields.io/badge/React-19.2-61dafb?logo=react&logoColor=white&style=flat-square)
@@ -17,6 +17,7 @@
 | **Markdown** | Full GitHub-Flavored Markdown (GFM) with live rendered preview |
 | **HTML** | Write and preview HTML in a sandboxed, isolated container |
 | **JSON** | Validate, inspect, and pretty-print JSON structures |
+| **Mermaid** | Dedicated diagram viewer with live render, pan & zoom, and SVG/PNG export |
 
 ### Markdown Capabilities
 - **Mermaid Diagrams** — Flowcharts, sequence diagrams, class diagrams, state diagrams, and Gantt charts
@@ -26,6 +27,15 @@
 - **Syntax Highlighting** — Language-labeled code blocks
 - **Automatic Link Detection** — Standard and custom URI schemes (including `magnet:`)
 - **Blockquotes, Footnotes & Typography**
+
+### Mermaid Viewer
+- **Live rendering** with syntax errors shown as a banner plus a squiggle on the offending line, while the last valid diagram stays visible
+- **Pan & zoom** — drag to pan, scroll or pinch to zoom, double-click or `0` to fit, `1` for 100%, `+`/`-` and arrow keys
+- **Export** to SVG (portable vector), PNG (2x), HTML and PDF, or copy the SVG markup
+- **Themes** — match the app, or Default / Neutral / Forest / Dark
+- **Examples** — flowchart, sequence, class, state, ER, Gantt, pie, mind map, user journey and git graph
+- **AI** — *Fix Mermaid* repairs syntax using the real parser error (and skips the AI call when the diagram is already valid); *Generate* writes or edits a diagram from a description
+- Upload `.mmd`, `.mermaid`, `.md` (first ` ```mermaid ` block) or `.txt`
 
 ### Monaco Editor Engine
 - **VS Code Engine** (`@monaco-editor/react`) with syntax highlighting for Markdown, HTML, and JSON
@@ -41,7 +51,8 @@
 
 ### AI Assistance (Google Gemini)
 - **Convert to Markdown** — Transform unstructured plain text into formatted Markdown
-- **Fix Syntax** — AI repairs broken HTML tags and invalid JSON syntax
+- **Fix Syntax** — AI repairs broken HTML/CSS/JS, JSON and Mermaid syntax
+- **Generate** — in every editor, describe what you want and AI writes it (a Markdown document, a page across the HTML/CSS/Script tabs, valid JSON, or a diagram), or edits what you already have. Ctrl+Z undoes it in the desktop editor
 - **Zero-Leak Client Storage** — Your API key is stored in your browser's `localStorage` and sent only to Google's Gemini API
 
 ### Minimalist Monochrome Design

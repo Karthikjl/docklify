@@ -10,8 +10,10 @@ import { copyHTMLToClipboard } from '../utils/exportUtils';
 import Tooltip from '../components/Tooltip';
 import { useFullscreen } from '../hooks/useFullscreen';
 import FullscreenButton from '../components/FullscreenButton';
+import GenerateButton from '../components/GenerateButton';
+import { GENERATE_CONFIG } from '../utils/generateConfig';
 
-export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize, scrollSync, editorTheme }) {
+export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize, scrollSync, editorTheme, onGenerate }) {
     const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
     const debouncedJson = useDebounce(jsonContent, 100);
     const [lastValidParsed, setLastValidParsed] = useState(null);
@@ -69,6 +71,7 @@ export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize,
                             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
                                 Raw JSON
                             </h2>
+                            <GenerateButton onClick={onGenerate} tooltip={GENERATE_CONFIG.json.tooltip} />
                         </div>
                         <Editor
                             value={jsonContent}

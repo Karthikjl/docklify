@@ -317,3 +317,284 @@ FIXED JSON OUTPUT (no explanations, just the corrected JSON):`;
         throw new Error(`Failed to fix JSON: ${error.message}`);
     }
 }
+
+const MERMAID_RULES = `MERMAID RULES:
+- Output ONLY Mermaid code: no explanations, no markdown code fences, no comments about what you changed
+- Use Mermaid v11 syntax and start with a valid diagram type (flowchart, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, gantt, pie, mindmap, journey, gitGraph, ...)
+- Wrap node/edge labels in double quotes when they contain special characters such as ( ) [ ] { } : ; , # or quotes
+- Do not use the reserved word "end" in lowercase as a node id or label; write it as "End" or quote it
+- Use 4-space indentation`;
+
+/**
+ * Fix Mermaid syntax errors using Gemini
+ * @param {string} code - Mermaid source
+ * @param {string} errorMessage - The parser error for this source (helps the model locate the problem)
+ */
+export async function fixMermaid(code, errorMessage, apiKey, model) {
+    if (!code || !code.trim()) {
+        throw new Error('Input Mermaid is empty');
+    }
+
+    const prompt = `You are an expert at Mermaid diagram syntax. Fix the syntax errors in the diagram below so it renders correctly.
+
+${MERMAID_RULES}
+
+CRITICAL RULES:
+1. Keep the same diagram type, nodes, relationships and meaning. Change only what is needed to make it valid.
+2. Do not add new content or remove existing content.
+
+PARSER ERROR:
+"""
+${errorMessage || 'Unknown syntax error'}
+"""
+
+MERMAID INPUT:
+"""
+${code}
+"""
+
+FIXED MERMAID OUTPUT:`;
+
+    try {
+        const result = await generateWithGemini(prompt, apiKey, model, {
+            temperature: 0.1,
+            maxOutputTokens: 8192,
+        });
+        return stripCodeFence(result, 'mermaid');
+    } catch (error) {
+        throw new Error(`Failed to fix Mermaid: ${error.message}`);
+    }
+}
+
+/**
+ * Generate (or edit) a Mermaid diagram from a plain-language description.
+ * If a `validate` function is given, one repair pass is attempted when the first result does not parse.
+ * @param {string} description - What the diagram should show / what to change
+ * @param {{current?: string, validate?: (code: string) => Promise<{message: string}|null>}} [options]
+ *   current - Existing diagram to modify instead of starting from scratch
+ * @returns {Promise<string>} - Mermaid code
+ */
+export async function generateMermaid(description, apiKey, model, { current = '', validate } = {}) {
+    if (!description || !description.trim()) {
+        throw new Error('Describe the diagram you want');
+    }
+
+    const task = current.trim()
+        ? `Modify the EXISTING diagram below according to the request. Keep everything the request does not mention.
+
+EXISTING DIAGRAM:
+"""
+${current}
+"""
+
+REQUEST:
+"""
+${description}
+"""`
+        : `Create a diagram for the request below. Choose the diagram type that fits best.
+
+REQUEST:
+"""
+${description}
+"""`;
+
+    const prompt = `You are an expert at Mermaid diagrams. ${task}
+
+${MERMAID_RULES}
+
+MERMAID OUTPUT:`;
+
+    try {
+        let code = stripCodeFence(
+            await generateWithGemini(prompt, apiKey, model, { temperature: 0.4, maxOutputTokens: 8192 }),
+            'mermaid'
+        );
+
+        const error = validate ? await validate(code) : null;
+        if (error) {
+            code = await fixMermaid(code, error.message, apiKey, model);
+        }
+
+        return code;
+    } catch (error) {
+        throw new Error(`Failed to generate diagram: ${error.message}`);
+    }
+}
+
+/**
+ * Generate (or edit) a web page as HTML + CSS + JavaScript from a description.
+ * @param {string} description - What the page should be / what to change
+ * @param {{current?: {html: string, css: string, js: string}|null}} [options]
+ *   current - Existing tabs to modify instead of starting from scratch
+ * @returns {Promise<{html: string, css: string, js: string}>} - Contents for each tab
+ */
+export async function generateHTML(description, apiKey, model, { current = null } = {}) {
+    if (!description || !description.trim()) {
+        throw new Error('Describe the page you want');
+    }
+
+    const task = current
+        ? `Modify the EXISTING page below according to the request. Keep everything the request does not mention, and keep existing ids, classes and function names so the three files keep working together.
+
+REQUEST:
+"""
+${description}
+"""
+
+EXISTING FILES:
+
+${FIX_MARKERS.html}
+${current.html}
+${FIX_MARKERS.css}
+${current.css}
+${FIX_MARKERS.js}
+${current.js}
+${FIX_MARKERS.end}`
+        : `Create a page for the request below.
+
+REQUEST:
+"""
+${description}
+"""`;
+
+    const prompt = `You are an expert front-end developer. You write a small web page as three separate files: HTML, CSS and JavaScript. ${task}
+
+RULES:
+1. HTML file: only the markup that belongs inside <body>. No <!DOCTYPE>, <html>, <head>, <body>, <style> or <script> tags.
+2. CSS file: plain CSS for the HTML. JavaScript file: plain JavaScript that runs after the markup exists (the script is loaded at the end of the body). Do not wrap either file in tags.
+3. Make it self-contained and working: no build step, no external libraries, fonts, images or network requests. Use inline SVG or CSS shapes for any graphics.
+4. Responsive, accessible (semantic elements, labels, sufficient contrast) and good looking, with a coherent colour palette. Use 2-space indentation.
+5. If a file is not needed (for example no JavaScript is required), leave its section empty.
+6. Output EXACTLY the three sections below, with these marker lines on their own line, and nothing else - no explanations, no markdown code fences. Output the COMPLETE content of each file.
+
+${FIX_MARKERS.html}
+(complete HTML)
+${FIX_MARKERS.css}
+(complete CSS)
+${FIX_MARKERS.js}
+(complete JavaScript)
+${FIX_MARKERS.end}`;
+
+    try {
+        const result = await generateWithGemini(prompt, apiKey, model, {
+            temperature: 0.5,
+            maxOutputTokens: 8192,
+        });
+        return parseFixSections(result);
+    } catch (error) {
+        throw new Error(`Failed to generate page: ${error.message}`);
+    }
+}
+
+/**
+ * Generate (or edit) JSON from a description. The result is guaranteed to be valid JSON
+ * (one repair pass is attempted if the first answer does not parse), pretty-printed.
+ * @param {string} description - What the data should look like / what to change
+ * @param {{current?: string}} [options] - current: existing JSON to modify instead of starting fresh
+ * @returns {Promise<string>} - Pretty-printed JSON
+ */
+export async function generateJSON(description, apiKey, model, { current = '' } = {}) {
+    if (!description || !description.trim()) {
+        throw new Error('Describe the JSON you want');
+    }
+
+    const task = current.trim()
+        ? `Modify the EXISTING JSON below according to the request. Keep everything the request does not mention.
+
+EXISTING JSON:
+"""
+${current}
+"""
+
+REQUEST:
+"""
+${description}
+"""`
+        : `Create JSON for the request below.
+
+REQUEST:
+"""
+${description}
+"""`;
+
+    const prompt = `You are an expert at designing JSON data. ${task}
+
+RULES:
+1. Output ONLY valid JSON: no explanations, no comments, no markdown code fences
+2. Use double quotes for all keys and strings, no trailing commas
+3. Use realistic, varied sample values when you have to invent data (not "string", "foo" or "test")
+4. Use clear, consistent key names and appropriate types (numbers as numbers, booleans as booleans, dates as ISO 8601 strings)
+5. Use 2-space indentation
+
+JSON OUTPUT:`;
+
+    try {
+        let result = stripCodeFence(
+            await generateWithGemini(prompt, apiKey, model, { temperature: 0.4, maxOutputTokens: 8192 }),
+            'json'
+        );
+
+        try {
+            JSON.parse(result);
+        } catch {
+            // One repair pass; fixJSON throws if the result is still not valid JSON
+            result = await fixJSON(result, apiKey, model);
+        }
+
+        return JSON.stringify(JSON.parse(result), null, 2);
+    } catch (error) {
+        throw new Error(`Failed to generate JSON: ${error.message}`);
+    }
+}
+
+/**
+ * Generate (or edit) a Markdown document from a description.
+ * @param {string} description - What the document should be / what to change
+ * @param {{current?: string}} [options] - current: existing Markdown to modify instead of starting fresh
+ * @returns {Promise<string>} - Markdown
+ */
+export async function generateMarkdown(description, apiKey, model, { current = '' } = {}) {
+    if (!description || !description.trim()) {
+        throw new Error('Describe the document you want');
+    }
+
+    const task = current.trim()
+        ? `Modify the EXISTING Markdown document below according to the request. Keep everything the request does not mention.
+
+EXISTING DOCUMENT:
+"""
+${current}
+"""
+
+REQUEST:
+"""
+${description}
+"""`
+        : `Write a Markdown document for the request below.
+
+REQUEST:
+"""
+${description}
+"""`;
+
+    const prompt = `You are an expert technical writer. ${task}
+
+RULES:
+1. Output ONLY the Markdown document: no explanations before or after it, and do not wrap the whole document in a code fence
+2. Use GitHub-flavored Markdown: a single # title, ## sections, ### subsections, lists, tables, task lists (- [ ]), blockquotes and fenced code blocks with a language tag
+3. Math is supported ($inline$ and $$block$$) and so are Mermaid diagrams (a \`\`\`mermaid fenced block); use them only when they genuinely help
+4. Be accurate and well structured. Do not invent facts, statistics or links; when you are unsure, say so or leave a clear placeholder
+5. Do not use raw HTML
+
+MARKDOWN OUTPUT:`;
+
+    try {
+        const result = await generateWithGemini(prompt, apiKey, model, {
+            temperature: 0.6,
+            maxOutputTokens: 8192,
+        });
+        return stripCodeFence(result, 'markdown|md');
+    } catch (error) {
+        throw new Error(`Failed to generate Markdown: ${error.message}`);
+    }
+}

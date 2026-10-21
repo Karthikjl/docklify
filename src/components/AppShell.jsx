@@ -4,9 +4,11 @@ import Header from './Header';
 import Toolbar from './Toolbar';
 import StatusBar from './StatusBar';
 import AISettings from './AISettings';
+import AIPromptDialog from './AIPromptDialog';
 import Toast from './Toast';
 import ConfirmDialog from './ConfirmDialog';
 import { ResetIcon } from './Icons';
+import { GENERATE_CONFIG } from '../utils/generateConfig';
 import { useEditor } from '../context/EditorContext';
 
 export default function AppShell({ children }) {
@@ -16,7 +18,18 @@ export default function AppShell({ children }) {
         ? editor.markdown
         : editor.currentFormat === 'html'
             ? editor.htmlContent
-            : editor.jsonContent;
+            : editor.currentFormat === 'mermaid'
+                ? editor.mermaidContent
+                : editor.jsonContent;
+
+    const generateConfig = GENERATE_CONFIG[editor.currentFormat];
+    const hasContent = editor.currentFormat === 'html'
+        ? Boolean(editor.htmlCode.trim() || editor.cssCode.trim() || editor.jsCode.trim())
+        : editor.currentFormat === 'json'
+            ? Boolean(editor.jsonContent.trim())
+            : editor.currentFormat === 'mermaid'
+                ? Boolean(editor.mermaidContent.trim())
+                : Boolean(editor.markdown.trim());
 
     return (
         <div className={`flex flex-col h-screen ${editor.theme === 'light' ? 'light-theme bg-white text-zinc-900' : 'bg-[#09090b] text-zinc-100'}`}>
@@ -60,12 +73,28 @@ export default function AppShell({ children }) {
             <AISettings
                 key={editor.showAISettings ? 'open' : 'closed'}
                 isOpen={editor.showAISettings}
-                onClose={() => editor.setShowAISettings(false)}
-                onSave={(key, model) => {
-                    editor.setAiApiKey(key);
-                    editor.setAiModel(model);
-                }}
+                onClose={editor.handleAISettingsClose}
+                onSave={editor.handleAISettingsSaved}
             />
+
+            {generateConfig && (
+                <AIPromptDialog
+                    key={`${editor.showGenerate ? 'open' : 'closed'}-${editor.currentFormat}`}
+                    isOpen={editor.showGenerate}
+                    onClose={() => editor.setShowGenerate(false)}
+                    title={generateConfig.title}
+                    description={generateConfig.description}
+                    placeholder={generateConfig.placeholder}
+                    submitLabel="Generate"
+                    modes={hasContent
+                        ? [
+                            { value: 'new', label: 'Start new' },
+                            { value: 'edit', label: 'Edit current' },
+                        ]
+                        : undefined}
+                    onSubmit={editor.handleGenerate}
+                />
+            )}
 
             <Toast toasts={editor.toasts} onRemove={editor.removeToast} />
 

@@ -455,6 +455,47 @@ ${js && js.trim() ? `<script>\n${js}\n<\/script>` : ''}
 }
 
 /**
+ * The preview iframe has an opaque origin (no allow-same-origin, so previewed code can never reach
+ * the app's saved settings), which makes localStorage/sessionStorage throw SecurityError. A single
+ * uncaught throw at the top of a page's script stops all of its handlers, so provide in-memory
+ * stand-ins (they last for the life of the preview).
+ */
+const STORAGE_SHIM = `<script>
+(function() {
+  function makeStore() {
+    var data = Object.create(null);
+    var api = {
+      getItem: function(k) { k = String(k); return k in data ? data[k] : null; },
+      setItem: function(k, v) { data[String(k)] = String(v); },
+      removeItem: function(k) { delete data[String(k)]; },
+      clear: function() { data = Object.create(null); },
+      key: function(i) { return Object.keys(data)[i] || null; }
+    };
+    return new Proxy(api, {
+      get: function(t, p) {
+        if (p === 'length') return Object.keys(data).length;
+        if (p in t) return t[p];
+        return typeof p === 'string' && p in data ? data[p] : undefined;
+      },
+      set: function(t, p, v) { data[String(p)] = String(v); return true; },
+      deleteProperty: function(t, p) { delete data[p]; return true; },
+      has: function(t, p) { return p in t || p in data; },
+      ownKeys: function() { return Object.keys(data); },
+      getOwnPropertyDescriptor: function(t, p) {
+        return p in data ? { value: data[p], writable: true, enumerable: true, configurable: true } : undefined;
+      }
+    });
+  }
+  ['localStorage', 'sessionStorage'].forEach(function(name) {
+    try { void window[name]; }
+    catch (e) {
+      try { Object.defineProperty(window, name, { value: makeStore(), configurable: true, writable: true }); } catch (e2) {}
+    }
+  });
+})();
+<\u002Fscript>`;
+
+/**
  * Injects navigation guards into the HTML preview so clicking <a href="#"> or form submits
  * will NEVER navigate or reload the host app inside the iframe!
  */
@@ -509,6 +550,7 @@ export function injectPreviewGuards(htmlContent) {
 <\/script>`;
 
     const baseTag = '<base target="_blank">';
+    const headStart = baseTag + STORAGE_SHIM;
     const isComplete = /<!doctype|<html/i.test(htmlContent.trim());
 
     if (isComplete) {
@@ -517,9 +559,12 @@ export function injectPreviewGuards(htmlContent) {
         // Inject <base target="_blank"> in head
         // (\b-style match so <header> / <html-like> tags are not mistaken for <head>)
         if (/<head(?:\s[^>]*)?>/i.test(result)) {
-            result = result.replace(/<head(?:\s[^>]*)?>/i, (m) => `${m}${baseTag}`);
+            result = result.replace(/<head(?:\s[^>]*)?>/i, (m) => `${m}${headStart}`);
         } else if (/<html(?:\s[^>]*)?>/i.test(result)) {
-            result = result.replace(/<html(?:\s[^>]*)?>/i, (m) => `${m}<head>${baseTag}</head>`);
+            result = result.replace(/<html(?:\s[^>]*)?>/i, (m) => `${m}<head>${headStart}</head>`);
+        } else {
+            // Only a doctype: put the head right after it
+            result = result.replace(/<!doctype[^>]*>/i, (m) => `${m}<head>${headStart}</head>`);
         }
 
         // Inject guardScript before </body> or at end
@@ -538,7 +583,7 @@ export function injectPreviewGuards(htmlContent) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  ${baseTag}
+  ${headStart}
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {

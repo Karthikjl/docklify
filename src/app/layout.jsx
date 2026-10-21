@@ -5,8 +5,8 @@ import AppShell from '../components/AppShell';
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
 export const metadata = {
-  title: 'Docklify - Markdown, HTML & JSON Viewer',
-  description: 'Modern, high-performance Markdown, HTML and JSON viewer & editor with real-time preview and intelligent formatting',
+  title: 'Docklify - Markdown, HTML, JSON & Mermaid Viewer',
+  description: 'Modern, high-performance Markdown, HTML, JSON and Mermaid viewer & editor with real-time preview and intelligent formatting',
   keywords: 'docklify, markdown viewer, html editor, json viewer, mermaid diagrams, latex, real-time preview',
   authors: [{ name: 'Docklify' }],
   icons: {
@@ -18,8 +18,8 @@ export const metadata = {
     apple: `${basePath}/logo.svg`,
   },
   openGraph: {
-    title: 'Docklify - Markdown, HTML & JSON Viewer',
-    description: 'Modern, high-performance Markdown, HTML and JSON viewer & editor with real-time preview',
+    title: 'Docklify - Markdown, HTML, JSON & Mermaid Viewer',
+    description: 'Modern, high-performance Markdown, HTML, JSON and Mermaid viewer & editor with real-time preview',
     type: 'website',
   },
 };

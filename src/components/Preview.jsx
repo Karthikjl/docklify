@@ -2,8 +2,13 @@
 
 import { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
-import DOMPurify from 'dompurify';
 import { injectPreviewGuards } from '../renderers/htmlRenderer';
+import { buildMermaidConfig, sanitizeMermaidSvg } from '../utils/mermaidRenderer';
+
+// No allow-same-origin: previewed code stays isolated from the app (and its saved API key).
+// The rest lets typical pages work: dialogs (alert/confirm), form submit events, links that open
+// in a new tab, and downloads.
+const PREVIEW_SANDBOX = 'allow-scripts allow-modals allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads';
 
 export default function Preview({ content, theme, fontSize, scrollSync, language }) {
     const previewRef = useRef(null);
@@ -19,43 +24,9 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
     const prevContentRef = useRef(null);
     const scrollRafRef = useRef(null);
 
-    // Initialize Mermaid once per theme change
+    // Initialize Mermaid once per theme change (shared config with the Mermaid viewer)
     useEffect(() => {
-        mermaid.initialize({
-            startOnLoad: false,
-            theme: 'base',
-            themeVariables: theme === 'dark' ? {
-                darkMode: true,
-                background: 'transparent',
-                primaryColor: '#1e293b', // slate-800
-                primaryTextColor: '#e2e8f0', // slate-200
-                primaryBorderColor: '#38bdf8', // sky-400
-                lineColor: '#94a3b8', // slate-400
-                secondaryColor: '#0f172a', // slate-900
-                tertiaryColor: '#1e293b', // slate-800
-                clusterBkg: '#1e293b',
-                mainBkg: '#1e293b', // slate-800
-                nodeBorder: '#38bdf8', // sky-400
-                edgeLabelBackground: '#0f172a', // slate-900
-                fontFamily: 'Poppins, sans-serif',
-            } : {
-                darkMode: false,
-                background: 'transparent',
-                primaryColor: '#ffffff',
-                primaryTextColor: '#0f172a', // slate-900
-                primaryBorderColor: '#0ea5e9', // sky-500
-                lineColor: '#64748b', // slate-500
-                secondaryColor: '#f8fafc', // slate-50
-                tertiaryColor: '#ffffff',
-                clusterBkg: '#ffffff',
-                mainBkg: '#ffffff',
-                nodeBorder: '#0ea5e9',
-                edgeLabelBackground: '#f8fafc', // Match light bg
-                fontFamily: 'Poppins, sans-serif',
-            },
-            securityLevel: 'strict',
-            fontFamily: 'Poppins, sans-serif',
-        });
+        mermaid.initialize(buildMermaidConfig(theme));
     }, [theme]);
 
     // For HTML: Render in isolated iframe with navigation and form submission guards
@@ -103,10 +74,7 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
                         .render(id, code)
                         .then(({ svg }) => {
                             // Mermaid output is untrusted: sanitize the SVG before inserting
-                            container.innerHTML = DOMPurify.sanitize(svg, {
-                                USE_PROFILES: { svg: true, svgFilters: true, html: true },
-                                ADD_TAGS: ['foreignObject'],
-                            });
+                            container.innerHTML = sanitizeMermaidSvg(svg);
                             const svgEl = container.querySelector('svg');
                             if (svgEl) {
                                 const w = parseFloat(svgEl.getAttribute('width')) || 0;
@@ -246,7 +214,7 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
                     title="HTML Preview"
                     srcDoc={getIframeContent()}
                     className="w-full h-full border-0 bg-white"
-                    sandbox="allow-scripts"
+                    sandbox={PREVIEW_SANDBOX}
                 />
             </div>
         );

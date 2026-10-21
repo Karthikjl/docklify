@@ -10,6 +10,7 @@ const TABS = [
     { path: '/', label: 'Markdown', exact: true },
     { path: '/html', label: 'HTML', exact: false },
     { path: '/json', label: 'JSON', exact: false },
+    { path: '/mermaid', label: 'Mermaid', exact: false },
 ];
 
 function Header({ editorTheme = 'vs-dark', onEditorThemeChange, theme = 'dark' }) {
@@ -19,6 +20,7 @@ function Header({ editorTheme = 'vs-dark', onEditorThemeChange, theme = 'dark' }
     const isLight = theme === 'light';
     const windowWidth = useWindowWidth();
     const isMobile = windowWidth < 768;
+    const isNarrow = windowWidth < 480; // phones: drop the wordmark and tighten tabs so all four tabs fit
 
     const activeIndex = TABS.findIndex(t =>
         t.exact ? pathname === t.path : pathname.startsWith(t.path)
@@ -28,7 +30,7 @@ function Header({ editorTheme = 'vs-dark', onEditorThemeChange, theme = 'dark' }
     useEffect(() => {
         const el = tabRefs.current[safeIndex];
         if (el) setPillStyle({ left: el.offsetLeft, width: el.offsetWidth });
-    }, [safeIndex]);
+    }, [safeIndex, windowWidth]);
 
     // Minimalist theme tokens (neutral zinc monochrome)
     const tokens = isLight ? {
@@ -139,6 +141,7 @@ function Header({ editorTheme = 'vs-dark', onEditorThemeChange, theme = 'dark' }
 
                 <span
                     style={{
+                        display: isNarrow ? 'none' : undefined,
                         fontSize: isMobile ? '1.05rem' : '1.2rem',
                         fontWeight: 700,
                         letterSpacing: '-0.025em',
@@ -193,8 +196,8 @@ function Header({ editorTheme = 'vs-dark', onEditorThemeChange, theme = 'dark' }
                             >
                                 <span style={{
                                     display: 'block',
-                                    padding: isMobile ? '5px 10px' : '5px 16px',
-                                    fontSize: '0.825rem',
+                                    padding: isNarrow ? '5px 8px' : isMobile ? '5px 10px' : '5px 16px',
+                                    fontSize: isNarrow ? '0.775rem' : '0.825rem',
                                     color: isActive ? tokens.activeText : tokens.inactiveText,
                                     fontWeight: isActive ? 600 : 500,
                                     whiteSpace: 'nowrap',

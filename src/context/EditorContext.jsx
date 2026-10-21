@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { useToast } from '../components/Toast';
@@ -16,18 +16,35 @@ import {
     loadHTMLTabs,
     saveHTMLTabs,
     loadJSONContent,
-    saveJSONContent
+    saveJSONContent,
+    loadMermaidContent,
+    saveMermaidContent
 } from '../utils/storageUtils';
 import { loadAIMode, saveAIMode, loadModel, loadApiKey } from '../utils/aiStorage';
 import { DEFAULT_EDITOR_THEME } from '../utils/editorThemes';
-import { convertToMarkdown, fixHTML, fixJSON } from '../utils/aiService';
+import { convertToMarkdown, fixHTML, fixJSON, fixMermaid, generateMermaid, generateHTML, generateJSON, generateMarkdown } from '../utils/aiService';
+import { undoHint } from '../utils/generateConfig';
+import { renderMermaid, validateMermaid, extractMermaidCode, getDiagramBackground } from '../utils/mermaidRenderer';
 import { exportAsHTML, exportAsPDF, exportHTMLAsPDF, copyHTMLToClipboard } from '../utils/exportUtils';
 import { renderMarkdown } from '../renderers/markdownRenderer';
 import { renderJSON } from '../renderers/jsonRenderer';
 import { splitHTML, buildFullHTML } from '../renderers/htmlRenderer';
 import { DEFAULT_MARKDOWN, DEFAULT_HTML, DEFAULT_JSON, DEFAULT_HTML_CODE, DEFAULT_CSS_CODE, DEFAULT_JS_CODE } from '../utils/defaultContent';
+import { DEFAULT_MERMAID } from '../utils/mermaidExamples';
 
 const EditorContext = createContext(null);
+
+/** Standalone HTML snippet containing the rendered diagram (portable SVG, no web fonts) */
+async function buildMermaidExportHTML(code, appTheme, mermaidTheme) {
+    if (!code.trim()) throw new Error('There is no diagram to export.');
+    const { svg } = await renderMermaid(code, { appTheme, mermaidTheme, forExport: true });
+    const background = getDiagramBackground(appTheme, mermaidTheme);
+    return `<style>svg{max-width:100%;height:auto}</style><div style="text-align:center;background:${background};padding:16px">${svg}</div>`;
+}
+
+function describeExportError(error) {
+    return error?.message ? `Could not render the diagram: ${error.message}` : 'Could not export the diagram.';
+}
 
 export function EditorProvider({ children }) {
     const pathname = usePathname() || '/';
@@ -47,6 +64,8 @@ export function EditorProvider({ children }) {
     const [jsCode, setJsCode] = useState('');
     const [activeHtmlTab, setActiveHtmlTab] = useState('html');
     const [jsonContent, setJsonContent] = useState('');
+    const [mermaidContent, setMermaidContent] = useState('');
+    const [mermaidTheme, setMermaidTheme] = useState('app');
 
     // AI State
     const [aiMode, setAiMode] = useState(false);
@@ -54,11 +73,21 @@ export function EditorProvider({ children }) {
     const [aiApiKey, setAiApiKey] = useState('');
     const [showAISettings, setShowAISettings] = useState(false);
     const [aiLoading, setAiLoading] = useState(false);
+    const [showGenerate, setShowGenerate] = useState(false);
+    const [pendingGenerate, setPendingGenerate] = useState(false);
     const [showConfirmClear, setShowConfirmClear] = useState(false);
     const [showConfirmReset, setShowConfirmReset] = useState(false);
 
     // Determine current format based on pathname
-    const currentFormat = pathname === '/html' ? 'html' : pathname === '/json' ? 'json' : 'markdown';
+    // Client-side navigation can add a trailing slash (/html/), so compare without it
+    const routePath = pathname.replace(/\/+$/, '') || '/';
+    const currentFormat = routePath === '/html'
+        ? 'html'
+        : routePath === '/json'
+            ? 'json'
+            : routePath === '/mermaid'
+                ? 'mermaid'
+                : 'markdown';
 
     // Initial load from storage on client mount
     useEffect(() => {
@@ -66,6 +95,7 @@ export function EditorProvider({ children }) {
         const savedTabs = loadHTMLTabs();
         const savedHTML = loadHTMLContent();
         const savedJSON = loadJSONContent();
+        const savedMermaid = loadMermaidContent();
 
         setMarkdown(savedMarkdown || DEFAULT_MARKDOWN);
 
@@ -102,6 +132,7 @@ export function EditorProvider({ children }) {
         const combinedHTML = (isLegacyTabs || !savedHTML) ? buildFullHTML(initialHtml, initialCss, initialJs) : savedHTML;
         setHtmlContent(combinedHTML);
         setJsonContent((isLegacyJSON || !savedJSON) ? DEFAULT_JSON : savedJSON);
+        setMermaidContent(savedMermaid ?? DEFAULT_MERMAID);
 
         const savedTheme = loadTheme();
         setTheme(savedTheme);
@@ -109,6 +140,11 @@ export function EditorProvider({ children }) {
         setAiMode(loadAIMode());
         setAiModel(loadModel());
         setAiApiKey(loadApiKey());
+
+        const savedMermaidTheme = localStorage.getItem('doclify-mermaid-theme');
+        if (savedMermaidTheme) {
+            setMermaidTheme(savedMermaidTheme);
+        }
 
         const savedEditorTheme = localStorage.getItem('doclify-editor-theme');
         if (savedEditorTheme) {
@@ -147,6 +183,18 @@ export function EditorProvider({ children }) {
         const timer = setTimeout(() => saveJSONContent(jsonContent), 500);
         return () => clearTimeout(timer);
     }, [jsonContent]);
+
+    // Auto-save Mermaid (an empty diagram is a valid saved state, so don't skip empty)
+    const mermaidLoadedRef = useRef(false);
+    useEffect(() => {
+        if (!mermaidLoadedRef.current) {
+            // Skip the initial '' before storage has been read
+            if (mermaidContent === '') return;
+            mermaidLoadedRef.current = true;
+        }
+        const timer = setTimeout(() => saveMermaidContent(mermaidContent), 500);
+        return () => clearTimeout(timer);
+    }, [mermaidContent]);
 
     // Theme toggle with circular expand animation from icon to full page
     const handleThemeToggle = useCallback((event) => {
@@ -302,6 +350,12 @@ export function EditorProvider({ children }) {
             } else if (updatedTabs.length > 1) {
                 toast.success(`Imported ${updatedTabs.length} files: ${updatedTabs.join(', ')}`, 'Bundle Uploaded');
             }
+        } else if (currentFormat === 'mermaid') {
+            const file = files[0];
+            const code = extractMermaidCode(file?.content || '');
+            setMermaidContent(code);
+            saveMermaidContent(code);
+            toast.success(`Imported diagram: ${file.name || 'diagram.mmd'}`, 'Mermaid Uploaded');
         } else if (currentFormat === 'json') {
             const file = files[0];
             const content = file?.content || '';
@@ -327,9 +381,19 @@ export function EditorProvider({ children }) {
     }, [currentFormat, htmlCode, cssCode, jsCode, activeHtmlTab, toast]);
 
     // Export HTML
-    const handleExportHTML = useCallback(() => {
+    const handleExportHTML = useCallback(async () => {
         let contentToExport = '';
         const filename = 'document.html';
+
+        if (currentFormat === 'mermaid') {
+            try {
+                const html = await buildMermaidExportHTML(mermaidContent, theme, mermaidTheme);
+                exportAsHTML(html, 'diagram.html');
+            } catch (error) {
+                toast.error(describeExportError(error), 'Export Error');
+            }
+            return;
+        }
 
         if (currentFormat === 'html') {
             contentToExport = htmlContent;
@@ -339,7 +403,7 @@ export function EditorProvider({ children }) {
             contentToExport = renderMarkdown(markdown);
         }
         exportAsHTML(contentToExport, filename);
-    }, [currentFormat, htmlContent, jsonContent, markdown]);
+    }, [currentFormat, htmlContent, jsonContent, markdown, mermaidContent, theme, mermaidTheme, toast]);
 
     // Export PDF
     const handleExportPDF = useCallback(async () => {
@@ -348,6 +412,10 @@ export function EditorProvider({ children }) {
                 await exportHTMLAsPDF(htmlContent, 'document.pdf');
                 toast.success('PDF exported successfully!', 'Export');
                 return;
+            } else if (currentFormat === 'mermaid') {
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = await buildMermaidExportHTML(mermaidContent, theme, mermaidTheme);
+                await exportAsPDF(wrapper, 'diagram.pdf');
             } else if (currentFormat === 'json') {
                 const temp = document.createElement('div');
                 temp.innerHTML = renderJSON(jsonContent);
@@ -365,12 +433,13 @@ export function EditorProvider({ children }) {
             console.error('PDF export error:', error);
             toast.error('Failed to export PDF. Please try again.', 'Export Error');
         }
-    }, [currentFormat, htmlContent, jsonContent, toast]);
+    }, [currentFormat, htmlContent, jsonContent, mermaidContent, theme, mermaidTheme, toast]);
 
     // Copy to clipboard
     const handleCopy = useCallback(async () => {
         let contentToCopy = '';
         if (currentFormat === 'html') contentToCopy = htmlContent;
+        else if (currentFormat === 'mermaid') contentToCopy = mermaidContent;
         else if (currentFormat === 'json') {
             try {
                 contentToCopy = JSON.stringify(JSON.parse(jsonContent), null, 2);
@@ -387,7 +456,7 @@ export function EditorProvider({ children }) {
             console.error('Copy error:', error);
             toast.error('Failed to copy. Please try again.', 'Copy Error');
         }
-    }, [currentFormat, htmlContent, jsonContent, markdown, toast]);
+    }, [currentFormat, htmlContent, jsonContent, markdown, mermaidContent, toast]);
 
     // Clear content
     const handleClear = useCallback(() => {
@@ -404,6 +473,8 @@ export function EditorProvider({ children }) {
             saveHTMLContent('');
         } else if (currentFormat === 'json') {
             setJsonContent('');
+        } else if (currentFormat === 'mermaid') {
+            setMermaidContent('');
         } else {
             setMarkdown('');
         }
@@ -417,7 +488,9 @@ export function EditorProvider({ children }) {
             ? (!htmlCode?.trim() && !cssCode?.trim() && !jsCode?.trim())
             : currentFormat === 'json'
                 ? !jsonContent?.trim()
-                : !markdown?.trim();
+                : currentFormat === 'mermaid'
+                    ? !mermaidContent?.trim()
+                    : !markdown?.trim();
 
         if (isEmpty) {
             if (currentFormat === 'html') {
@@ -433,6 +506,10 @@ export function EditorProvider({ children }) {
                 setJsonContent(DEFAULT_JSON);
                 saveJSONContent(DEFAULT_JSON);
                 toast.success('Default JSON template loaded.', 'Template Restored');
+            } else if (currentFormat === 'mermaid') {
+                setMermaidContent(DEFAULT_MERMAID);
+                saveMermaidContent(DEFAULT_MERMAID);
+                toast.success('Default diagram loaded.', 'Template Restored');
             } else {
                 setMarkdown(DEFAULT_MARKDOWN);
                 saveMarkdown(DEFAULT_MARKDOWN);
@@ -441,7 +518,7 @@ export function EditorProvider({ children }) {
         } else {
             setShowConfirmReset(true);
         }
-    }, [currentFormat, htmlCode, cssCode, jsCode, jsonContent, markdown, toast]);
+    }, [currentFormat, htmlCode, cssCode, jsCode, jsonContent, markdown, mermaidContent, toast]);
 
     const handleConfirmReset = useCallback(() => {
         if (currentFormat === 'html') {
@@ -457,6 +534,10 @@ export function EditorProvider({ children }) {
             setJsonContent(DEFAULT_JSON);
             saveJSONContent(DEFAULT_JSON);
             toast.success('Default JSON template restored.', 'Template Restored');
+        } else if (currentFormat === 'mermaid') {
+            setMermaidContent(DEFAULT_MERMAID);
+            saveMermaidContent(DEFAULT_MERMAID);
+            toast.success('Default diagram restored.', 'Template Restored');
         } else {
             setMarkdown(DEFAULT_MARKDOWN);
             saveMarkdown(DEFAULT_MARKDOWN);
@@ -484,6 +565,10 @@ export function EditorProvider({ children }) {
             toast.warning('Enter some JSON first.', 'Nothing to fix');
             return;
         }
+        if (currentFormat === 'mermaid' && !mermaidContent.trim()) {
+            toast.warning('Enter or generate a diagram first.', 'Nothing to fix');
+            return;
+        }
 
         setAiLoading(true);
         try {
@@ -503,13 +588,94 @@ export function EditorProvider({ children }) {
             } else if (currentFormat === 'json') {
                 const result = await fixJSON(jsonContent, aiApiKey, aiModel);
                 setJsonContent(result);
+            } else if (currentFormat === 'mermaid') {
+                // The parser tells us whether anything is wrong (and where): don't spend an AI call otherwise
+                const problem = await validateMermaid(mermaidContent);
+                if (!problem) {
+                    toast.info('This diagram has no syntax errors.', 'Nothing to fix');
+                } else {
+                    const result = await fixMermaid(mermaidContent, problem.message, aiApiKey, aiModel);
+                    setMermaidContent(result);
+                    const stillBroken = await validateMermaid(result);
+                    if (stillBroken) {
+                        toast.warning('The AI fix still has an error. Review it or run Fix again.', 'Partly fixed');
+                    }
+                }
             }
         } catch (e) {
             toast.error(e.message, 'AI Error');
         } finally {
             setAiLoading(false);
         }
-    }, [currentFormat, markdown, htmlCode, cssCode, jsCode, jsonContent, aiApiKey, aiModel, toast]);
+    }, [currentFormat, markdown, htmlCode, cssCode, jsCode, jsonContent, mermaidContent, aiApiKey, aiModel, toast]);
+
+    // Generate (or edit) content for the current tab from a description
+    const handleGenerate = useCallback(async (description, mode) => {
+        if (!aiApiKey || !aiModel) {
+            throw new Error('Add your Gemini API key and choose a model first.');
+        }
+        const edit = mode === 'edit';
+
+        if (currentFormat === 'mermaid') {
+            const code = await generateMermaid(description, aiApiKey, aiModel, {
+                current: edit ? mermaidContent : '',
+                validate: validateMermaid,
+            });
+            setMermaidContent(code);
+            toast.success(`Diagram ready.${undoHint()}`, 'AI');
+        } else if (currentFormat === 'html') {
+            const result = await generateHTML(description, aiApiKey, aiModel, {
+                current: edit ? { html: htmlCode, css: cssCode, js: jsCode } : null,
+            });
+            setHtmlCode(result.html);
+            setCssCode(result.css);
+            setJsCode(result.js);
+            setHtmlContent(buildFullHTML(result.html, result.css, result.js));
+            toast.success(`Page ready in the HTML, CSS and Script tabs.${undoHint()}`, 'AI');
+        } else if (currentFormat === 'json') {
+            const result = await generateJSON(description, aiApiKey, aiModel, {
+                current: edit ? jsonContent : '',
+            });
+            setJsonContent(result);
+            toast.success(`JSON ready.${undoHint()}`, 'AI');
+        } else {
+            const result = await generateMarkdown(description, aiApiKey, aiModel, {
+                current: edit ? markdown : '',
+            });
+            setMarkdown(result);
+            toast.success(`Document ready.${undoHint()}`, 'AI');
+        }
+    }, [currentFormat, aiApiKey, aiModel, mermaidContent, htmlCode, cssCode, jsCode, jsonContent, markdown, toast]);
+
+    // The Generate dialog needs a key and model: if they are missing, ask for them first and
+    // continue to the dialog once they are saved
+    const openGenerate = useCallback(() => {
+        // The button is always visible; using it switches AI Mode on so the other AI controls appear too
+        if (!aiMode) {
+            setAiMode(true);
+            saveAIMode(true);
+        }
+        if (!aiApiKey || !aiModel) {
+            setPendingGenerate(true);
+            setShowAISettings(true);
+        } else {
+            setShowGenerate(true);
+        }
+    }, [aiMode, aiApiKey, aiModel]);
+
+    const handleAISettingsSaved = useCallback((key, model) => {
+        setAiApiKey(key);
+        setAiModel(model);
+        if (pendingGenerate) {
+            setPendingGenerate(false);
+            setShowGenerate(true);
+        }
+    }, [pendingGenerate]);
+
+    const handleAISettingsClose = useCallback(() => {
+        setShowAISettings(false);
+        setPendingGenerate(false);
+    }, []);
 
     // Toolbar config
     const toolbarConfig = currentFormat === 'html'
@@ -519,6 +685,13 @@ export function EditorProvider({ children }) {
             tooltip: 'Upload Web files (.html, .css, .js)',
             multiple: true,
         }
+        : currentFormat === 'mermaid'
+            ? {
+                accept: '.mmd,.mermaid,.md,.txt',
+                label: 'Fix Mermaid',
+                tooltip: 'Upload diagram (.mmd, .mermaid, .md)',
+                multiple: false,
+            }
         : currentFormat === 'json'
             ? {
                 accept: '.json',
@@ -543,6 +716,13 @@ export function EditorProvider({ children }) {
             saveAIMode(next);
             return next;
         });
+    }, []);
+
+    const handleMermaidThemeChange = useCallback((t) => {
+        setMermaidTheme(t);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('doclify-mermaid-theme', t);
+        }
     }, []);
 
     const handleOpenAISettings = useCallback(() => {
@@ -578,6 +758,10 @@ export function EditorProvider({ children }) {
         setActiveHtmlTab,
         jsonContent,
         setJsonContent,
+        mermaidContent,
+        setMermaidContent,
+        mermaidTheme,
+        handleMermaidThemeChange,
         currentFormat,
 
         // Action Handlers
@@ -601,6 +785,13 @@ export function EditorProvider({ children }) {
         setShowAISettings,
         aiLoading,
         handleAiAction,
+        handleGenerate,
+        openGenerate,
+        showGenerate,
+        setShowGenerate,
+        handleAISettingsSaved,
+        handleAISettingsClose,
+        toast,
 
         // Dialog & Toast
         showConfirmClear,

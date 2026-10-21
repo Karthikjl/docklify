@@ -14,6 +14,7 @@ export default function HomePage() {
             fontSize={editor.fontSize}
             scrollSync={editor.scrollSync}
             editorTheme={editor.editorTheme}
+            onGenerate={editor.openGenerate}
         />
     );
 }

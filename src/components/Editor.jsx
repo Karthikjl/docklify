@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { EDITOR_THEMES } from '../utils/editorThemes';
 import { useWindowWidth } from '../hooks/useWindowWidth';
+import { registerMermaidLanguage } from '../utils/mermaidLanguage';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
     ssr: false,
@@ -27,11 +28,13 @@ export default function Editor({
     readOnly = false,
     isSecondary = false,
     path,
+    markers,
 }) {
     const editorRef = useRef(null);
     const monacoRef = useRef(null);
     const scrollSyncRef = useRef(scrollSync);
     const isSyncingRef = useRef(false);
+    const markersRef = useRef(markers);
     const windowWidth = useWindowWidth();
     const isMobile = windowWidth < 768;
 
@@ -39,9 +42,35 @@ export default function Editor({
         scrollSyncRef.current = scrollSync;
     }, [scrollSync]);
 
+    // Show problems (e.g. diagram syntax errors) as squiggles on the given lines
+    function applyMarkers() {
+        const editor = editorRef.current;
+        const monaco = monacoRef.current;
+        const model = editor?.getModel();
+        if (!monaco || !model) return;
+
+        const lineCount = model.getLineCount();
+        monaco.editor.setModelMarkers(
+            model,
+            'docklify',
+            (markersRef.current || []).map((m) => {
+                const line = Math.min(Math.max(m.line, 1), lineCount);
+                return {
+                    severity: monaco.MarkerSeverity.Error,
+                    message: m.message,
+                    startLineNumber: line,
+                    endLineNumber: line,
+                    startColumn: 1,
+                    endColumn: model.getLineMaxColumn(line),
+                };
+            })
+        );
+    }
+
     function handleEditorDidMount(editor, monaco) {
         editorRef.current = editor;
         monacoRef.current = monaco;
+        applyMarkers();
 
         EDITOR_THEMES.forEach(({ id, data }) => {
             if (data) {
@@ -104,6 +133,11 @@ export default function Editor({
             });
         });
     }
+
+    useEffect(() => {
+        markersRef.current = markers;
+        applyMarkers();
+    }, [markers]);
 
     useEffect(() => {
         if (editorRef.current) editorRef.current.updateOptions({ fontSize });
@@ -174,6 +208,7 @@ export default function Editor({
                     }
                 }}
                 theme={editorTheme}
+                beforeMount={registerMermaidLanguage}
                 onMount={handleEditorDidMount}
                 options={{
                     readOnly,

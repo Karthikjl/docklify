@@ -145,6 +145,28 @@ export function saveJSONContent(content) {
     }
 }
 
+// Mermaid Content Storage
+const MERMAID_CONTENT_KEY = 'doclify_mermaid_content';
+
+export function loadMermaidContent() {
+    if (!isBrowser) return null;
+    try {
+        return localStorage.getItem(MERMAID_CONTENT_KEY);
+    } catch (error) {
+        console.error('Failed to load Mermaid content:', error);
+        return null;
+    }
+}
+
+export function saveMermaidContent(content) {
+    if (!isBrowser) return;
+    try {
+        localStorage.setItem(MERMAID_CONTENT_KEY, content);
+    } catch (error) {
+        console.error('Failed to save Mermaid content:', error);
+    }
+}
+
 /**
  * Load font size preference
  * @returns {number} - Saved font size
@@ -171,6 +193,7 @@ export function clearStorage() {
         });
         localStorage.removeItem(HTML_CONTENT_KEY);
         localStorage.removeItem(JSON_CONTENT_KEY);
+        localStorage.removeItem(MERMAID_CONTENT_KEY);
     } catch (error) {
         console.error('Error clearing storage:', error);
     }

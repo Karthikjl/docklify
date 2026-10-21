@@ -22,6 +22,7 @@ export default function HtmlRoute() {
             editorTheme={editor.editorTheme}
             activeTab={editor.activeHtmlTab}
             setActiveTab={editor.setActiveHtmlTab}
+            onGenerate={editor.openGenerate}
         />
     );
 }

@@ -8,8 +8,10 @@ import { renderMarkdown } from '../renderers/markdownRenderer';
 import { useDebounce } from '../hooks/useDebounce';
 import { useFullscreen } from '../hooks/useFullscreen';
 import FullscreenButton from '../components/FullscreenButton';
+import GenerateButton from '../components/GenerateButton';
+import { GENERATE_CONFIG } from '../utils/generateConfig';
 
-export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, scrollSync, editorTheme }) {
+export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, scrollSync, editorTheme, onGenerate }) {
     const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
     // Debounce preview rendering to prevent main thread stutters during fast typing
     const debouncedMarkdown = useDebounce(markdown, 120);
@@ -30,6 +32,7 @@ export default function MarkdownPage({ markdown, setMarkdown, theme, fontSize, s
                             <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
                                 Markdown Editor
                             </h2>
+                            <GenerateButton onClick={onGenerate} tooltip={GENERATE_CONFIG.markdown.tooltip} />
                         </div>
                         <Editor
                             value={markdown}
