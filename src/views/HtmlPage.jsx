@@ -8,6 +8,8 @@ import { formatHTML, formatCSS, formatJS } from '../renderers/htmlRenderer';
 import { useDebounce } from '../hooks/useDebounce';
 import { FormatIcon, HtmlIcon, CssIcon, JsIcon } from '../components/Icons';
 import Tooltip from '../components/Tooltip';
+import { useFullscreen } from '../hooks/useFullscreen';
+import FullscreenButton from '../components/FullscreenButton';
 
 export default function HtmlPage({
     htmlContent = '',
@@ -24,6 +26,7 @@ export default function HtmlPage({
     activeTab: controlledActiveTab,
     setActiveTab: controlledSetActiveTab,
 }) {
+    const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
     const [localActiveTab, setLocalActiveTab] = useState('html');
     const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : localActiveTab;
     const setActiveTab = controlledSetActiveTab || setLocalActiveTab;
@@ -63,6 +66,7 @@ export default function HtmlPage({
     return (
         <div className="h-full">
             <ResizablePanels
+                previewExpanded={isFullscreen}
                 theme={theme}
                 leftPanel={
                     <div className="flex flex-col h-full bg-white dark:bg-[#09090b] border-r border-zinc-200 dark:border-zinc-800">
@@ -141,8 +145,11 @@ export default function HtmlPage({
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
                                 Rendered Preview
                             </h2>
-                            <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
-                                HTML + CSS + JS
+                            <div className="flex items-center gap-3">
+                                <div className="text-[11px] text-zinc-400 dark:text-zinc-500 font-mono">
+                                    HTML + CSS + JS
+                                </div>
+                                <FullscreenButton isFullscreen={isFullscreen} onToggle={toggleFullscreen} />
                             </div>
                         </div>
                         <Preview

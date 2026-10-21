@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useWindowWidth } from '../hooks/useWindowWidth';
 
-export default function ResizablePanels({ leftPanel, rightPanel, theme = 'dark' }) {
+export default function ResizablePanels({ leftPanel, rightPanel, theme = 'dark', previewExpanded = false }) {
     const [leftWidth, setLeftWidth] = useState(50);
     const [isDragging, setIsDragging] = useState(false);
     const [activeTab, setActiveTab] = useState('editor'); // mobile only
@@ -115,9 +115,9 @@ export default function ResizablePanels({ leftPanel, rightPanel, theme = 'dark' 
 
         return (
             <div className="flex-1 flex flex-col overflow-hidden h-full">
-                {/* Minimal Tab switcher */}
+                {/* Minimal Tab switcher (hidden while the preview is expanded) */}
                 <div style={{
-                    display: 'flex',
+                    display: previewExpanded ? 'none' : 'flex',
                     alignItems: 'center',
                     padding: '3px',
                     margin: '8px 12px 6px',
@@ -158,10 +158,10 @@ export default function ResizablePanels({ leftPanel, rightPanel, theme = 'dark' 
 
                 {/* Active panel */}
                 <div className="flex-1 overflow-hidden" style={{ minHeight: 0 }}>
-                    <div style={{ display: activeTab === 'editor' ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
+                    <div style={{ display: activeTab === 'editor' && !previewExpanded ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
                         {leftPanel}
                     </div>
-                    <div style={{ display: activeTab === 'preview' ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
+                    <div style={{ display: activeTab === 'preview' || previewExpanded ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
                         {rightPanel}
                     </div>
                 </div>
@@ -175,7 +175,7 @@ export default function ResizablePanels({ leftPanel, rightPanel, theme = 'dark' 
             {/* Left Panel */}
             <div
                 className="flex flex-col min-h-0 h-full"
-                style={{ width: `${leftWidth}%` }}
+                style={{ width: `${leftWidth}%`, display: previewExpanded ? 'none' : undefined }}
             >
                 {leftPanel}
             </div>
@@ -184,6 +184,7 @@ export default function ResizablePanels({ leftPanel, rightPanel, theme = 'dark' 
             <div
                 ref={resizeHandleRef}
                 className="resize-handle-container"
+                style={{ display: previewExpanded ? 'none' : undefined }}
                 onMouseDown={handleMouseDown}
             >
                 <div className={`resize-handle ${isDragging ? 'dragging' : ''}`}>
@@ -194,7 +195,7 @@ export default function ResizablePanels({ leftPanel, rightPanel, theme = 'dark' 
             {/* Right Panel */}
             <div
                 className="flex flex-col min-h-0 h-full relative"
-                style={{ width: `${100 - leftWidth}%` }}
+                style={{ width: previewExpanded ? '100%' : `${100 - leftWidth}%` }}
             >
                 {isDragging && (
                     <div className="absolute inset-0 z-50" style={{ cursor: 'col-resize' }} />

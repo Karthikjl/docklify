@@ -8,8 +8,11 @@ import { FormatIcon, CopyIcon, CheckIcon, AlertCircleIcon } from '../components/
 import { copyHTMLToClipboard } from '../utils/exportUtils';
 
 import Tooltip from '../components/Tooltip';
+import { useFullscreen } from '../hooks/useFullscreen';
+import FullscreenButton from '../components/FullscreenButton';
 
 export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize, scrollSync, editorTheme }) {
+    const { isFullscreen, toggle: toggleFullscreen } = useFullscreen();
     const debouncedJson = useDebounce(jsonContent, 100);
     const [lastValidParsed, setLastValidParsed] = useState(null);
     const [parseError, setParseError] = useState(null);
@@ -58,6 +61,7 @@ export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize,
     return (
         <div className="h-full">
             <ResizablePanels
+                previewExpanded={isFullscreen}
                 theme={theme}
                 leftPanel={
                     <div className="flex flex-col h-full bg-white dark:bg-[#09090b] border-r border-zinc-200 dark:border-zinc-800">
@@ -153,6 +157,8 @@ export default function JsonPage({ jsonContent, setJsonContent, theme, fontSize,
                                         )}
                                     </button>
                                 </Tooltip>
+
+                                <FullscreenButton isFullscreen={isFullscreen} onToggle={toggleFullscreen} />
                             </div>
                         </div>
 
