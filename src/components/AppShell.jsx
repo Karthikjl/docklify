@@ -32,7 +32,7 @@ export default function AppShell({ children }) {
                 : Boolean(editor.markdown.trim());
 
     return (
-        <div className={`flex flex-col h-screen ${editor.theme === 'light' ? 'light-theme bg-white text-zinc-900' : 'bg-[#09090b] text-zinc-100'}`}>
+        <div style={{ visibility: editor.ready ? 'visible' : 'hidden' }} className={`flex flex-col h-screen ${editor.theme === 'light' ? 'light-theme bg-white text-zinc-900' : 'bg-[#09090b] text-zinc-100'}`}>
             <Header
                 editorTheme={editor.editorTheme}
                 onEditorThemeChange={editor.handleEditorThemeChange}

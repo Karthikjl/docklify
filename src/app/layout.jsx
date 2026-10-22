@@ -33,6 +33,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('markdown-viewer-theme');if(t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark')}catch(e){}`,
+          }}
+        />
         <link rel="icon" type="image/svg+xml" href={`${basePath}/logo.svg`} />
         <link rel="alternate icon" href={`${basePath}/favicon.ico`} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

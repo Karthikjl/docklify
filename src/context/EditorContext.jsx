@@ -52,6 +52,7 @@ export function EditorProvider({ children }) {
 
     // Shared State
     const [theme, setTheme] = useState('light');
+    const [ready, setReady] = useState(false);
     const [fontSize, setFontSize] = useState(16);
     const [scrollSync, setScrollSync] = useState(true);
     const [editorTheme, setEditorTheme] = useState(DEFAULT_EDITOR_THEME);
@@ -156,6 +157,7 @@ export function EditorProvider({ children }) {
         } else {
             document.documentElement.classList.remove('dark');
         }
+        setReady(true);
     }, []);
 
     // Auto-save markdown
@@ -732,6 +734,7 @@ export function EditorProvider({ children }) {
     const value = {
         // Theme & Config
         theme,
+        ready,
         handleThemeToggle,
         fontSize,
         handleFontSizeChange,
