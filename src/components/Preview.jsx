@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import mermaid from 'mermaid';
+import { createRoot } from 'react-dom/client';
+import MarkdownMermaid from './MarkdownMermaid';
 import { injectPreviewGuards } from '../renderers/htmlRenderer';
-import { buildMermaidConfig, sanitizeMermaidSvg } from '../utils/mermaidRenderer';
 
 // No allow-same-origin: previewed code stays isolated from the app (and its saved API key).
 // The rest lets typical pages work: dialogs (alert/confirm), form submit events, links that open
@@ -22,12 +22,22 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
     }, [scrollSync]);
 
     const prevContentRef = useRef(null);
+    const prevThemeRef = useRef(null);
     const scrollRafRef = useRef(null);
 
-    // Initialize Mermaid once per theme change (shared config with the Mermaid viewer)
-    useEffect(() => {
-        mermaid.initialize(buildMermaidConfig(theme));
-    }, [theme]);
+    // React roots for the interactive Mermaid diagrams inside the injected markdown HTML
+    const rootsRef = useRef([]);
+    const unmountDiagrams = () => {
+        const roots = rootsRef.current;
+        rootsRef.current = [];
+        // Defer: unmounting synchronously during a React render/effect is not allowed
+        setTimeout(() => roots.forEach((r) => r.unmount()), 0);
+    };
+    useEffect(() => () => {
+        unmountDiagrams();
+        // The injected DOM is now stale (StrictMode re-runs effects), so force the next pass to rebuild it
+        prevContentRef.current = null;
+    }, []);
 
     // For HTML: Render in isolated iframe with navigation and form submission guards
     const getIframeContent = () => {
@@ -39,8 +49,10 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
         if (language === 'html' || !previewRef.current) return;
 
         // Skip identical DOM updates
-        if (prevContentRef.current === content && content) return;
+        if (prevContentRef.current === content && prevThemeRef.current === theme && content) return;
         prevContentRef.current = content;
+        prevThemeRef.current = theme;
+        unmountDiagrams();
 
         if (!content) {
             previewRef.current.innerHTML = '';
@@ -50,75 +62,23 @@ export default function Preview({ content, theme, fontSize, scrollSync, language
         // Direct innerHTML assignment avoids double-pass reflow
         previewRef.current.innerHTML = content;
 
-        // Only search and render Mermaid if markdown contains mermaid blocks
+        // Replace each mermaid code block with an interactive pan/zoom diagram
         if (content.includes('mermaid')) {
-            const mermaidCodeBlocks = previewRef.current.querySelectorAll(
-                'pre.mermaid-code > code.language-mermaid'
-            );
+            previewRef.current
+                .querySelectorAll('pre.mermaid-code > code.language-mermaid')
+                .forEach((element) => {
+                    const code = element.textContent?.trim();
+                    const pre = element.closest('pre');
+                    if (!code || !pre) return;
 
-            mermaidCodeBlocks.forEach((element, index) => {
-                const code = element.textContent?.trim();
-                if (!code) return;
+                    const container = document.createElement('div');
+                    container.className = 'mermaid-container';
+                    pre.replaceWith(container);
 
-                const container = document.createElement('div');
-                container.className = 'mermaid-container';
-
-                const pre = element.closest('pre');
-                if (!pre) return;
-
-                pre.replaceWith(container);
-
-                try {
-                    const id = `mermaid-diagram-${index}-${Date.now()}`;
-                    mermaid
-                        .render(id, code)
-                        .then(({ svg }) => {
-                            // Mermaid output is untrusted: sanitize the SVG before inserting
-                            container.innerHTML = sanitizeMermaidSvg(svg);
-                            const svgEl = container.querySelector('svg');
-                            if (svgEl) {
-                                const w = parseFloat(svgEl.getAttribute('width')) || 0;
-                                const h = parseFloat(svgEl.getAttribute('height')) || 0;
-                                let viewBox = svgEl.getAttribute('viewBox');
-                                if (!viewBox && w > 0 && h > 0) {
-                                    viewBox = `0 0 ${w} ${h}`;
-                                    svgEl.setAttribute('viewBox', viewBox);
-                                }
-                                if (viewBox) {
-                                    const parts = viewBox.trim().split(/[\s,]+/).map(Number);
-                                    if (parts.length === 4) {
-                                        const [vx, vy, vw, vh] = parts;
-                                        const fullW = vw + Math.max(0, -vx);
-                                        const fullH = vh + Math.max(0, -vy);
-                                        const newVx = Math.min(0, vx);
-                                        const newVy = Math.min(0, vy);
-                                        svgEl.setAttribute('viewBox', `${newVx} ${newVy} ${fullW} ${fullH}`);
-                                    }
-                                }
-                                svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-                                svgEl.removeAttribute('width');
-                                svgEl.removeAttribute('height');
-                                svgEl.style.cssText = '';
-                                svgEl.style.setProperty('display', 'block', 'important');
-                                svgEl.style.setProperty('width', '100%', 'important');
-                                svgEl.style.setProperty('height', 'auto', 'important');
-                                svgEl.style.setProperty('max-height', '75vh', 'important');
-                            }
-                        })
-                        .catch((err) => {
-                            console.error('Mermaid render error:', err);
-                            container.textContent = '';
-                            const box = document.createElement('div');
-                            box.className = 'text-red-500 p-4 border border-red-300 rounded';
-                            const label = document.createElement('strong');
-                            label.textContent = 'Mermaid Error: ';
-                            box.append(label, document.createTextNode(err.message));
-                            container.appendChild(box);
-                        });
-                } catch (err) {
-                    console.error(err);
-                }
-            });
+                    const root = createRoot(container);
+                    root.render(<MarkdownMermaid code={code} theme={theme} />);
+                    rootsRef.current.push(root);
+                });
         }
 
         // Make task list checkboxes interactive (read-only)

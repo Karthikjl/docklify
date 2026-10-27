@@ -25,7 +25,7 @@ function zoomAt(view, factor, px, py) {
  * Until the user pans or zooms, the diagram stays "fitted" and follows resizes
  * and content changes; after that their view is kept.
  */
-export default function PanZoomViewer({ svg, width, height, background, label = 'Diagram' }) {
+export default function PanZoomViewer({ svg, width, height, background, label = 'Diagram', zoomRequiresModifier = false, extraControls = null }) {
     const viewportRef = useRef(null);
     const pointersRef = useRef(new Map());
     const pinchRef = useRef(null);
@@ -79,6 +79,8 @@ export default function PanZoomViewer({ svg, width, height, background, label = 
         const el = viewportRef.current;
         if (!el) return;
         const onWheel = (e) => {
+            // Embedded in a scrolling page: plain wheel scrolls the page, Ctrl/Cmd+wheel zooms
+            if (zoomRequiresModifier && !e.ctrlKey && !e.metaKey) return;
             e.preventDefault();
             const rect = el.getBoundingClientRect();
             const delta = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
@@ -87,7 +89,7 @@ export default function PanZoomViewer({ svg, width, height, background, label = 
         };
         el.addEventListener('wheel', onWheel, { passive: false });
         return () => el.removeEventListener('wheel', onWheel);
-    }, [zoomBy]);
+    }, [zoomBy, zoomRequiresModifier]);
 
     const handlePointerDown = (e) => {
         if (e.button !== undefined && e.button !== 0) return;
@@ -223,6 +225,7 @@ export default function PanZoomViewer({ svg, width, height, background, label = 
                 <ControlButton label="Fit to screen (0)" onClick={() => setUserView(null)} active={userView === null}>
                     <FitIcon size={13} />
                 </ControlButton>
+                {extraControls}
             </div>
         </div>
     );
