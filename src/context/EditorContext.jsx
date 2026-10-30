@@ -25,7 +25,7 @@ import { DEFAULT_EDITOR_THEME } from '../utils/editorThemes';
 import { convertToMarkdown, fixHTML, fixJSON, fixMermaid, generateMermaid, generateHTML, generateJSON, generateMarkdown } from '../utils/aiService';
 import { undoHint } from '../utils/generateConfig';
 import { renderMermaid, validateMermaid, extractMermaidCode, getDiagramBackground } from '../utils/mermaidRenderer';
-import { exportAsHTML, exportAsPDF, exportHTMLAsPDF, copyHTMLToClipboard } from '../utils/exportUtils';
+import { exportAsHTML, exportAsPDF, exportHTMLAsPDF, copyHTMLToClipboard, JSON_EXPORT_CSS } from '../utils/exportUtils';
 import { renderMarkdown } from '../renderers/markdownRenderer';
 import { renderJSON } from '../renderers/jsonRenderer';
 import { splitHTML, buildFullHTML } from '../renderers/htmlRenderer';
@@ -40,6 +40,26 @@ async function buildMermaidExportHTML(code, appTheme, mermaidTheme) {
     const { svg } = await renderMermaid(code, { appTheme, mermaidTheme, forExport: true });
     const background = getDiagramBackground(appTheme, mermaidTheme);
     return `<style>svg{max-width:100%;height:auto}</style><div style="text-align:center;background:${background};padding:16px">${svg}</div>`;
+}
+
+/** Rendered Markdown with its Mermaid code blocks replaced by static SVG diagrams (for export/copy) */
+async function renderMarkdownWithDiagrams(markdown) {
+    const container = document.createElement('div');
+    container.innerHTML = renderMarkdown(markdown);
+    const blocks = Array.from(container.querySelectorAll('pre.mermaid-code > code.language-mermaid'));
+    for (const code of blocks) {
+        try {
+            const { svg } = await renderMermaid(code.textContent, { appTheme: 'light', forExport: true });
+            const figure = document.createElement('div');
+            figure.className = 'mermaid-export';
+            figure.style.cssText = 'text-align:center;margin:1rem 0;page-break-inside:avoid';
+            figure.innerHTML = svg;
+            code.parentElement.replaceWith(figure);
+        } catch {
+            // Invalid diagram: keep the source code block
+        }
+    }
+    return container.innerHTML;
 }
 
 function describeExportError(error) {
@@ -384,58 +404,47 @@ export function EditorProvider({ children }) {
 
     // Export HTML
     const handleExportHTML = useCallback(async () => {
-        let contentToExport = '';
-        const filename = 'document.html';
-
-        if (currentFormat === 'mermaid') {
-            try {
+        try {
+            if (currentFormat === 'mermaid') {
                 const html = await buildMermaidExportHTML(mermaidContent, theme, mermaidTheme);
                 exportAsHTML(html, 'diagram.html');
-            } catch (error) {
-                toast.error(describeExportError(error), 'Export Error');
+            } else if (currentFormat === 'html') {
+                exportAsHTML(htmlContent, 'document.html');
+            } else if (currentFormat === 'json') {
+                exportAsHTML(renderJSON(jsonContent), 'document.html', { extraCss: JSON_EXPORT_CSS });
+            } else {
+                exportAsHTML(await renderMarkdownWithDiagrams(markdown), 'document.html');
             }
-            return;
+        } catch (error) {
+            console.error('HTML export error:', error);
+            toast.error(
+                currentFormat === 'mermaid' ? describeExportError(error) : 'Failed to export HTML. Please try again.',
+                'Export Error'
+            );
         }
-
-        if (currentFormat === 'html') {
-            contentToExport = htmlContent;
-        } else if (currentFormat === 'json') {
-            contentToExport = renderJSON(jsonContent);
-        } else {
-            contentToExport = renderMarkdown(markdown);
-        }
-        exportAsHTML(contentToExport, filename);
     }, [currentFormat, htmlContent, jsonContent, markdown, mermaidContent, theme, mermaidTheme, toast]);
 
-    // Export PDF
+    // Export PDF (opens the browser print dialog; "Save as PDF" finishes the export)
     const handleExportPDF = useCallback(async () => {
         try {
             if (currentFormat === 'html') {
                 await exportHTMLAsPDF(htmlContent, 'document.pdf');
-                toast.success('PDF exported successfully!', 'Export');
-                return;
             } else if (currentFormat === 'mermaid') {
-                const wrapper = document.createElement('div');
-                wrapper.innerHTML = await buildMermaidExportHTML(mermaidContent, theme, mermaidTheme);
-                await exportAsPDF(wrapper, 'diagram.pdf');
+                await exportAsPDF(await buildMermaidExportHTML(mermaidContent, theme, mermaidTheme), 'diagram.pdf');
             } else if (currentFormat === 'json') {
-                const temp = document.createElement('div');
-                temp.innerHTML = renderJSON(jsonContent);
-                await exportAsPDF(temp, 'document.pdf');
+                await exportAsPDF(renderJSON(jsonContent), 'document.pdf', { extraCss: JSON_EXPORT_CSS });
             } else {
-                const previewElement = document.querySelector('.markdown-preview');
-                if (!previewElement) {
-                    toast.error('Markdown preview not found.', 'Export Error');
-                    return;
-                }
-                await exportAsPDF(previewElement, 'document.pdf');
+                await exportAsPDF(await renderMarkdownWithDiagrams(markdown), 'document.pdf');
             }
-            toast.success('PDF exported successfully!', 'Export');
+            toast.info('Print dialog opened. Choose "Save as PDF" to finish.', 'Export');
         } catch (error) {
             console.error('PDF export error:', error);
-            toast.error('Failed to export PDF. Please try again.', 'Export Error');
+            toast.error(
+                currentFormat === 'mermaid' ? describeExportError(error) : 'Failed to export PDF. Please try again.',
+                'Export Error'
+            );
         }
-    }, [currentFormat, htmlContent, jsonContent, mermaidContent, theme, mermaidTheme, toast]);
+    }, [currentFormat, htmlContent, jsonContent, markdown, mermaidContent, theme, mermaidTheme, toast]);
 
     // Copy to clipboard
     const handleCopy = useCallback(async () => {
@@ -449,7 +458,7 @@ export function EditorProvider({ children }) {
                 contentToCopy = jsonContent;
             }
         }
-        else contentToCopy = renderMarkdown(markdown);
+        else contentToCopy = await renderMarkdownWithDiagrams(markdown);
 
         try {
             await copyHTMLToClipboard(contentToCopy);
